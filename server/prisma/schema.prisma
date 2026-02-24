@@ -1,0 +1,25 @@
+// Prisma schema for Mini Task Manager
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  // SQLite connector does not support Prisma enums; constrained in Zod validation.
+  status      String   @default("todo")
+  priority    String   @default("medium")
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tasks")
+}
