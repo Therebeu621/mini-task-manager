@@ -1,10 +1,12 @@
 /**
  * Shared TypeScript types for the Task domain.
- * Mirrors the Prisma model so the frontend can import just this file.
+ * Mirrors API contracts returned by the backend.
  */
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
+export type TaskSortBy = 'title' | 'dueDate' | 'createdAt' | 'priority' | 'status';
+export type SortOrder = 'asc' | 'desc';
 
 export interface Task {
     id: string;
@@ -12,7 +14,12 @@ export interface Task {
     description: string | null;
     status: TaskStatus;
     priority: TaskPriority;
-    dueDate: string | null; // ISO 8601 string in API responses
+    dueDate: string | null;
+    ownerId: string;
+    createdById: string;
+    updatedById: string;
+    deletedAt: string | null;
+    deletedById: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -34,8 +41,9 @@ export interface TaskQuery {
     search?: string;
     page?: number;
     limit?: number;
-    sortBy?: 'title' | 'dueDate' | 'createdAt' | 'priority' | 'status';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: TaskSortBy;
+    sortOrder?: SortOrder;
+    includeDeleted?: boolean;
 }
 
 export interface PaginationMeta {

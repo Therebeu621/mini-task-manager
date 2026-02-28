@@ -4,6 +4,7 @@
  */
 import express, { type Application } from 'express';
 import cors from 'cors';
+import { authRouter } from './routes/auth';
 import { healthRouter } from './routes/health';
 import { tasksRouter } from './routes/tasks';
 import { errorHandler } from './middleware/errorHandler';
@@ -32,6 +33,7 @@ export function createApp(): Application {
 
     // ─── Routes ───────────────────────────────────────────────────────────────
     app.use('/api/health', healthRouter);
+    app.use('/api/auth', authRouter);
     app.use('/api/tasks', tasksRouter);
 
     // 404 handler for unmatched routes

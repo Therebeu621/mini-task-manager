@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ApiError } from './api/http';
 import { Button } from './components/ui/Button';
 import { Drawer } from './components/ui/Drawer';
 import { Pagination } from './components/ui/Pagination';
+import { Spinner } from './components/ui/Spinner';
 import { ToastContainer } from './components/ui/Toast';
+import { AuthPage } from './features/auth/AuthPage';
 import { TaskFilters } from './features/tasks/TaskFilters';
 import { TaskForm } from './features/tasks/TaskForm';
 import { TaskList } from './features/tasks/TaskList';
 import { TaskToolbar } from './features/tasks/TaskToolbar';
+import { useAuth } from './hooks/useAuth';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useToast } from './hooks/useToast';
-import { useCreateTask, useDeleteTask, useTasksQuery, useUpdateTask } from './hooks/useTasks';
+import {
+    useCreateTask,
+    useDeleteTask,
+    useRestoreTask,
+    useTasksQuery,
+    useUpdateTask,
+} from './hooks/useTasks';
 import type {
     CreateTaskInput,
     SortOrder,
@@ -27,9 +37,21 @@ const DEFAULT_QUERY: TaskQueryParams = {
     sortOrder: 'desc',
     page: 1,
     limit: 10,
+    includeDeleted: false,
 };
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return 'Unexpected error';
+}
+
 export default function App() {
+    const { user, isAuthenticated, isBootstrapping, isSubmitting, authError, login, register, logout } =
+        useAuth();
+    const { toasts, addToast, dismiss } = useToast();
+
     const [queryState, setQueryState] = useState<TaskQueryParams>(DEFAULT_QUERY);
     const [searchInput, setSearchInput] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -38,10 +60,10 @@ export default function App() {
 
     const debouncedSearch = useDebouncedValue(searchInput, 300);
 
-    const { toasts, addToast, dismiss } = useToast();
     const createMutation = useCreateTask();
     const updateMutation = useUpdateTask();
     const deleteMutation = useDeleteTask();
+    const restoreMutation = useRestoreTask();
 
     const query = useMemo(
         () => ({
@@ -51,11 +73,33 @@ export default function App() {
         [debouncedSearch, queryState],
     );
 
-    const tasksQuery = useTasksQuery(query);
+    const tasksEnabled = isAuthenticated;
+    const tasksQuery = useTasksQuery(query, { enabled: tasksEnabled });
 
     useEffect(() => {
         setQueryState((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }));
     }, [debouncedSearch]);
+
+    useEffect(() => {
+        if (!tasksEnabled || !tasksQuery.error) {
+            return;
+        }
+
+        if (tasksQuery.error instanceof ApiError && tasksQuery.error.status === 401) {
+            addToast('Session expirée. Merci de vous reconnecter.', 'error');
+            logout();
+        }
+    }, [addToast, logout, tasksEnabled, tasksQuery.error]);
+
+    useEffect(() => {
+        if (!user || user.role === 'admin') {
+            return;
+        }
+
+        setQueryState((prev) =>
+            prev.includeDeleted ? { ...prev, includeDeleted: false, page: 1 } : prev,
+        );
+    }, [user]);
 
     const response = tasksQuery.data ?? {
         data: [],
@@ -73,6 +117,7 @@ export default function App() {
                 queryState.status ||
                     queryState.priority ||
                     debouncedSearch.trim() ||
+                    queryState.includeDeleted ||
                     queryState.sortBy !== DEFAULT_QUERY.sortBy ||
                     queryState.sortOrder !== DEFAULT_QUERY.sortOrder,
             ),
@@ -80,8 +125,38 @@ export default function App() {
     );
 
     const isFormPending = createMutation.isPending || updateMutation.isPending;
-    const errorMessage =
-        tasksQuery.error instanceof Error ? tasksQuery.error.message : 'Unexpected error';
+    const isDeletePending = deleteMutation.isPending || restoreMutation.isPending;
+    const errorMessage = getErrorMessage(tasksQuery.error);
+
+    const canManageDeleted = user?.role === 'admin';
+
+    function handleMutationError(error: unknown) {
+        if (error instanceof ApiError && error.status === 401) {
+            addToast('Session expirée. Merci de vous reconnecter.', 'error');
+            logout();
+            return;
+        }
+
+        addToast(getErrorMessage(error), 'error');
+    }
+
+    async function handleLogin(payload: { email: string; password: string }) {
+        try {
+            await login(payload);
+            addToast('Connexion réussie', 'success');
+        } catch {
+            // handled by useAuth.authError
+        }
+    }
+
+    async function handleRegister(payload: { email: string; password: string }) {
+        try {
+            await register(payload);
+            addToast('Compte créé avec succès', 'success');
+        } catch {
+            // handled by useAuth.authError
+        }
+    }
 
     function openCreateForm() {
         setEditingTask(null);
@@ -89,6 +164,9 @@ export default function App() {
     }
 
     function openEditForm(task: Task) {
+        if (task.deletedAt) {
+            return;
+        }
         setEditingTask(task);
         setIsFormOpen(true);
     }
@@ -97,7 +175,6 @@ export default function App() {
         if (isFormPending) {
             return;
         }
-
         setIsFormOpen(false);
         setEditingTask(null);
     }
@@ -113,12 +190,15 @@ export default function App() {
             }
             closeForm();
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unexpected error';
-            addToast(message, 'error');
+            handleMutationError(error);
         }
     }
 
     async function handleDelete(task: Task) {
+        if (isDeletePending) {
+            return;
+        }
+
         const confirmed = window.confirm(`Delete task "${task.title}"?`);
         if (!confirmed) {
             return;
@@ -128,8 +208,20 @@ export default function App() {
             await deleteMutation.mutateAsync(task.id);
             addToast('Task deleted', 'success');
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unexpected error';
-            addToast(message, 'error');
+            handleMutationError(error);
+        }
+    }
+
+    async function handleRestore(task: Task) {
+        if (isDeletePending) {
+            return;
+        }
+
+        try {
+            await restoreMutation.mutateAsync(task.id);
+            addToast('Task restored', 'success');
+        } catch (error) {
+            handleMutationError(error);
         }
     }
 
@@ -155,6 +247,10 @@ export default function App() {
         updateFilters({ sortBy, sortOrder });
     }
 
+    function handleIncludeDeletedChange(includeDeleted: boolean) {
+        updateFilters({ includeDeleted });
+    }
+
     function handlePageChange(page: number) {
         const safePage = Math.min(Math.max(page, 1), response.meta.totalPages);
         setQueryState((prev) => ({ ...prev, page: safePage }));
@@ -165,6 +261,28 @@ export default function App() {
         setQueryState((prev) => ({ ...prev, page: 1, limit }));
     }
 
+    if (isBootstrapping) {
+        return (
+            <main className="auth-shell">
+                <Spinner label="Chargement de la session" />
+            </main>
+        );
+    }
+
+    if (!isAuthenticated || !user) {
+        return (
+            <>
+                <AuthPage
+                    isSubmitting={isSubmitting}
+                    errorMessage={authError}
+                    onLogin={handleLogin}
+                    onRegister={handleRegister}
+                />
+                <ToastContainer toasts={toasts} onDismiss={dismiss} />
+            </>
+        );
+    }
+
     return (
         <>
             <header className="product-header">
@@ -173,10 +291,20 @@ export default function App() {
                         <p className="product-header__eyebrow">Task Operations</p>
                         <h1 className="product-header__title">Mini Task Manager</h1>
                     </div>
+
                     <div className="product-header__stats">
                         <p className="product-header__count">
                             Total tasks: <strong>{response.meta.total}</strong>
                         </p>
+                        <div className="product-header__user">
+                            <span className="product-header__email">{user.email}</span>
+                            <span className={`product-header__role product-header__role--${user.role}`}>
+                                {user.role}
+                            </span>
+                            <Button variant="ghost" size="sm" onClick={logout}>
+                                Logout
+                            </Button>
+                        </div>
                         <Button onClick={openCreateForm} aria-label="Create task">
                             New task
                         </Button>
@@ -192,9 +320,12 @@ export default function App() {
                             priority={queryState.priority ?? ''}
                             sortBy={queryState.sortBy ?? 'createdAt'}
                             sortOrder={queryState.sortOrder ?? 'desc'}
+                            includeDeleted={Boolean(queryState.includeDeleted)}
+                            canManageDeleted={canManageDeleted}
                             onStatusChange={handleStatusChange}
                             onPriorityChange={handlePriorityChange}
                             onSortChange={handleSortChange}
+                            onIncludeDeletedChange={handleIncludeDeletedChange}
                             onReset={handleResetFilters}
                         />
                     </div>
@@ -214,10 +345,12 @@ export default function App() {
                             isError={tasksQuery.isError}
                             errorMessage={errorMessage}
                             hasFilters={hasActiveFilters}
+                            canRestoreDeleted={canManageDeleted && Boolean(queryState.includeDeleted)}
                             onCreateTask={openCreateForm}
                             onResetFilters={handleResetFilters}
                             onEditTask={openEditForm}
                             onDeleteTask={handleDelete}
+                            onRestoreTask={handleRestore}
                         />
 
                         <Pagination
@@ -243,9 +376,12 @@ export default function App() {
                     priority={queryState.priority ?? ''}
                     sortBy={queryState.sortBy ?? 'createdAt'}
                     sortOrder={queryState.sortOrder ?? 'desc'}
+                    includeDeleted={Boolean(queryState.includeDeleted)}
+                    canManageDeleted={canManageDeleted}
                     onStatusChange={handleStatusChange}
                     onPriorityChange={handlePriorityChange}
                     onSortChange={handleSortChange}
+                    onIncludeDeletedChange={handleIncludeDeletedChange}
                     onReset={handleResetFilters}
                 />
             </Drawer>

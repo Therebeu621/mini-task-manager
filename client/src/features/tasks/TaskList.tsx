@@ -9,10 +9,12 @@ interface TaskListProps {
     isError: boolean;
     errorMessage: string;
     hasFilters: boolean;
+    canRestoreDeleted: boolean;
     onCreateTask: () => void;
     onResetFilters: () => void;
     onEditTask: (task: Task) => void;
     onDeleteTask: (task: Task) => void;
+    onRestoreTask: (task: Task) => void;
 }
 
 export function TaskList({
@@ -21,10 +23,12 @@ export function TaskList({
     isError,
     errorMessage,
     hasFilters,
+    canRestoreDeleted,
     onCreateTask,
     onResetFilters,
     onEditTask,
     onDeleteTask,
+    onRestoreTask,
 }: TaskListProps) {
     if (isLoading) {
         return <Spinner label="Loading tasks" />;
@@ -63,7 +67,14 @@ export function TaskList({
     return (
         <div className="task-list-v2">
             {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} onEdit={onEditTask} onDelete={onDeleteTask} />
+                <TaskCard
+                    key={task.id}
+                    task={task}
+                    canRestore={canRestoreDeleted}
+                    onEdit={onEditTask}
+                    onDelete={onDeleteTask}
+                    onRestore={onRestoreTask}
+                />
             ))}
         </div>
     );

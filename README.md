@@ -2,69 +2,96 @@
 
 [![CI](https://github.com/Therebeu621/mini-task-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/Therebeu621/mini-task-manager/actions/workflows/ci.yml)
 
-Application fullstack de gestion de tâches, orientée produit, construite en monorepo TypeScript.
+Application fullstack TypeScript (monorepo npm workspaces) pour gérer des tâches, avec authentification JWT, RBAC, soft delete/restauration, pagination et UI orientée produit.
 
-## Stack
+## Aperçu interface
 
-- **Frontend**: React + Vite + TanStack Query
-- **Backend**: Node.js + Express + Prisma + SQLite
-- **Qualité**: ESLint + Prettier + Vitest/Supertest
-- **DevOps**: Docker + docker-compose + GitHub Actions
+![Capture de l'interface Mini Task Manager](docs/demo.png)
+
+
+## Stack technique
+
+- Frontend: React + Vite + TypeScript + TanStack Query
+- Backend: Node.js + Express + TypeScript + Prisma + SQLite
+- Qualité: ESLint + Prettier + Vitest + Supertest
+- DevOps: Docker + docker-compose + GitHub Actions (CI)
 
 ## Fonctionnalités
 
-- CRUD complet des tâches
-- Recherche + filtres (`status`, `priority`)
-- Tri (`title`, `dueDate`, `createdAt`, `priority`, `status`)
-- Pagination backend et frontend (`page`, `limit`)
+- Authentification: Register / Login / session JWT
+- RBAC strict:
+  - `user`: accès uniquement à ses tâches
+  - `admin`: accès global + gestion des tâches supprimées
+- CRUD tâches + restore:
+  - `DELETE` = soft delete
+  - `PATCH /api/tasks/:id/restore` = restauration
+- Audit minimal sur `Task`:
+  - `ownerId`, `createdById`, `updatedById`, `deletedAt`, `deletedById`
+- Filtres/recherche/tri + pagination backend/frontend
+- Optimistic updates (create/update/delete/restore) avec rollback si erreur
 - UI responsive:
   - desktop: sidebar filtres + liste
   - mobile: drawer filtres
-- Pagination UI avancée:
-  - First / Prev / Next / Last
-  - numéros + ellipses
-  - taille de page (10 / 20 / 50)
-  - affichage “Showing X-Y of Z”
-- Toasts + états loading / empty / erreur
 
-## Lancer le projet (recommandé)
-
-### Option 1: Docker (recommandé pour démo portfolio)
+## Démarrage rapide (recommandé: Docker)
 
 ```bash
 docker-compose up --build
 ```
 
-- UI: `http://localhost:5173`
+- Front: `http://localhost:5173`
 - API: `http://localhost:3001`
 
-Optionnel (données de démo):
+Seed de démo (optionnel):
 
 ```bash
 docker-compose exec server npm run db:seed
 ```
 
-### Option 2: Local dev (recommandé pour coder)
+## Démarrage local (développement)
 
 ```bash
 npm install
+cp server/.env.example server/.env
 npm run db:push
 npm run db:seed
 npm run dev
 ```
 
-## API
+URLs:
+
+- Front: `http://localhost:5173`
+- API: `http://localhost:3001`
+
+Comptes seed par défaut:
+
+- Admin: `admin@mini-task.local` / `Admin123!`
+- User: `user@mini-task.local` / `User123!`
+
+Tu peux les personnaliser via `SEED_*` dans `server/.env`.
+
+## Endpoints API
 
 Base URL: `http://localhost:3001`
 
-### Endpoints
+### Santé
 
 - `GET /api/health`
+
+### Auth
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+
+### Tasks (JWT requis)
+
 - `GET /api/tasks`
 - `POST /api/tasks`
 - `GET /api/tasks/:id`
 - `PUT /api/tasks/:id`
-- `DELETE /api/tasks/:id`
+- `DELETE /api/tasks/:id` (soft delete)
+- `PATCH /api/tasks/:id/restore`
 
 ### Query params de `GET /api/tasks`
 
@@ -73,13 +100,29 @@ Base URL: `http://localhost:3001`
 - `search`: texte libre
 - `sortBy`: `title|dueDate|createdAt|priority|status`
 - `sortOrder`: `asc|desc`
-- `page`: entier `>= 1` (défaut: `1`)
-- `limit`: entier `1..100` (défaut: `10`)
+- `page`: entier `>= 1` (défaut `1`)
+- `limit`: entier `1..100` (défaut `10`)
+- `includeDeleted`: `true|false` (défaut `false`)
 
 Exemple:
 
 ```bash
-curl "http://localhost:3001/api/tasks?page=2&limit=20&status=doing&sortBy=createdAt&sortOrder=desc"
+curl "http://localhost:3001/api/tasks?page=2&limit=10&status=doing&sortBy=createdAt&sortOrder=desc"
+```
+
+Réponse paginée:
+
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": {
+    "page": 2,
+    "limit": 10,
+    "total": 37,
+    "totalPages": 4
+  }
+}
 ```
 
 ## Commandes utiles
@@ -91,35 +134,58 @@ npm run build
 npm run format
 ```
 
-## CI
+## CI GitHub Actions
 
 Workflow: `.github/workflows/ci.yml`
 
 Déclenchement:
-- `push` sur `main`
-- `pull_request` vers `main`
 
-Étapes:
+- push sur `main`
+- pull_request vers `main`
+
+Pipeline:
+
 1. `npm ci`
 2. `npm run lint`
-3. `npm run test`
-4. `npm run build`
+3. `prisma generate` (server)
+4. `npm run test`
+5. `npm run build`
 
-## Structure rapide
+## Structure du repo
 
 ```text
-client/
-  src/components/ui
-  src/features/tasks
-server/
-  src/routes
-  src/services
-  prisma/
+.
+├── client/
+│   └── src/
+│       ├── api/
+│       ├── components/ui/
+│       ├── features/
+│       │   ├── auth/
+│       │   └── tasks/
+│       └── hooks/
+├── server/
+│   ├── prisma/
+│   │   ├── migrations/
+│   │   ├── schema.prisma
+│   │   └── seed.ts
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   └── validators/
+│   └── tests/
+└── .github/workflows/ci.yml
 ```
+
+## Notes tests
+
+- Tests backend couverts (auth + RBAC + soft delete/restore + pagination).
+- Tests frontend non inclus dans cette V1 (focus API + intégration fullstack).
 
 ## Améliorations possibles
 
-- Authentification (JWT/session)
-- Gestion des rôles
-- Optimistic updates côté frontend
-- Soft delete + audit trail
+- Refresh token + rotation
+- Pagination cursor-based
+- Audit trail enrichi (historique détaillé par champ)
+- Frontend tests (RTL + Vitest)

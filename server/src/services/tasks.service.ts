@@ -4,19 +4,31 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
+import { requireOwnershipOrAdmin } from '../middleware/auth';
+import type { AuthenticatedUser } from '../types/auth.types';
 import type { CreateTaskInput, UpdateTaskInput, TaskQueryInput } from '../validators/task.validator';
 
 const prisma = new PrismaClient();
 
-function buildTaskWhere(query: TaskQueryInput): Prisma.TaskWhereInput {
+function buildTaskWhere(query: TaskQueryInput, actor: AuthenticatedUser): Prisma.TaskWhereInput {
     const where: Prisma.TaskWhereInput = {};
+
+    if (actor.role === 'user') {
+        where.ownerId = actor.id;
+    }
+
+    if (!query.includeDeleted) {
+        where.deletedAt = null;
+    }
 
     if (query.status) {
         where.status = query.status;
     }
+
     if (query.priority) {
         where.priority = query.priority;
     }
+
     if (query.search) {
         where.OR = [
             { title: { contains: query.search } },
@@ -27,12 +39,42 @@ function buildTaskWhere(query: TaskQueryInput): Prisma.TaskWhereInput {
     return where;
 }
 
+async function findTaskOrThrow(id: string): Promise<{
+    id: string;
+    ownerId: string;
+    deletedAt: Date | null;
+}> {
+    const task = await prisma.task.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            ownerId: true,
+            deletedAt: true,
+        },
+    });
+
+    if (!task) {
+        throw new AppError(404, `Task with id "${id}" not found`);
+    }
+
+    return task;
+}
+
+async function assertTaskAccess(
+    id: string,
+    actor: AuthenticatedUser,
+): Promise<{ id: string; ownerId: string; deletedAt: Date | null }> {
+    const task = await findTaskOrThrow(id);
+    requireOwnershipOrAdmin(actor, task.ownerId);
+    return task;
+}
+
 export const TasksService = {
     /**
      * Return all tasks, optionally filtered, searched, and sorted.
      */
-    async list(query: TaskQueryInput) {
-        const where = buildTaskWhere(query);
+    async list(query: TaskQueryInput, actor: AuthenticatedUser) {
+        const where = buildTaskWhere(query, actor);
         const page = query.page ?? 1;
         const limit = query.limit ?? 10;
         const skip = (page - 1) * limit;
@@ -68,20 +110,30 @@ export const TasksService = {
     },
 
     /**
-     * Find a single task by id. Throws 404 if not found.
+     * Find a single non-deleted task by id. Throws if not found or not allowed.
      */
-    async findById(id: string) {
-        const task = await prisma.task.findUnique({ where: { id } });
+    async findById(id: string, actor: AuthenticatedUser) {
+        await assertTaskAccess(id, actor);
+
+        const task = await prisma.task.findFirst({
+            where: {
+                id,
+                ...(actor.role === 'admin' ? {} : { ownerId: actor.id }),
+                deletedAt: null,
+            },
+        });
+
         if (!task) {
             throw new AppError(404, `Task with id "${id}" not found`);
         }
+
         return task;
     },
 
     /**
      * Create a new task.
      */
-    async create(input: CreateTaskInput) {
+    async create(input: CreateTaskInput, actor: AuthenticatedUser) {
         return prisma.task.create({
             data: {
                 title: input.title,
@@ -89,16 +141,21 @@ export const TasksService = {
                 status: input.status ?? 'todo',
                 priority: input.priority ?? 'medium',
                 dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                ownerId: actor.id,
+                createdById: actor.id,
+                updatedById: actor.id,
             },
         });
     },
 
     /**
-     * Update fields on an existing task. Throws 404 if not found.
+     * Update fields on an existing non-deleted task.
      */
-    async update(id: string, input: UpdateTaskInput) {
-        // Verify the task exists before attempting to update
-        await TasksService.findById(id);
+    async update(id: string, input: UpdateTaskInput, actor: AuthenticatedUser) {
+        const existingTask = await assertTaskAccess(id, actor);
+        if (existingTask.deletedAt) {
+            throw new AppError(409, 'Cannot update a deleted task. Restore it first.');
+        }
 
         return prisma.task.update({
             where: { id },
@@ -110,15 +167,46 @@ export const TasksService = {
                 ...(input.dueDate !== undefined && {
                     dueDate: input.dueDate ? new Date(input.dueDate) : null,
                 }),
+                updatedById: actor.id,
             },
         });
     },
 
     /**
-     * Delete a task by id. Throws 404 if not found.
+     * Soft-delete a task by id.
      */
-    async remove(id: string) {
-        await TasksService.findById(id);
-        return prisma.task.delete({ where: { id } });
+    async remove(id: string, actor: AuthenticatedUser) {
+        const existingTask = await assertTaskAccess(id, actor);
+        if (existingTask.deletedAt) {
+            throw new AppError(409, 'Task is already deleted');
+        }
+
+        return prisma.task.update({
+            where: { id },
+            data: {
+                deletedAt: new Date(),
+                deletedById: actor.id,
+                updatedById: actor.id,
+            },
+        });
+    },
+
+    /**
+     * Restore a soft-deleted task by id.
+     */
+    async restore(id: string, actor: AuthenticatedUser) {
+        const existingTask = await assertTaskAccess(id, actor);
+        if (!existingTask.deletedAt) {
+            throw new AppError(409, 'Task is not deleted');
+        }
+
+        return prisma.task.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+                deletedById: null,
+                updatedById: actor.id,
+            },
+        });
     },
 };
