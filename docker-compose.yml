@@ -9,6 +9,8 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: file:./prod.db
+      JWT_SECRET: docker-compose-secret-change-me
+      JWT_EXPIRES_IN: 12h
     volumes:
       # Persist the SQLite database file between container restarts
       - server_db:/app/prisma

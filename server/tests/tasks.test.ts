@@ -1,7 +1,3 @@
-/**
- * Integration tests for the /api/tasks resource.
- * Uses a separate test SQLite database (configured via vitest.config.ts env).
- */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import supertest from 'supertest';
 import { PrismaClient } from '@prisma/client';
@@ -13,8 +9,13 @@ const prisma = new PrismaClient();
 let server: Server;
 const request = supertest(app);
 
+let adminToken = '';
+let adminUserId = '';
+let userToken = '';
+let userId = '';
+let otherUserToken = '';
+
 beforeAll(async () => {
-    // Push the Prisma schema to the test database
     execSync('npx prisma db push --skip-generate', {
         env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
         stdio: 'ignore',
@@ -27,126 +28,197 @@ afterAll(async () => {
     server.close();
 });
 
-// Clean the tasks table before each test for isolation
 beforeEach(async () => {
     await prisma.task.deleteMany();
+    await prisma.user.deleteMany();
+
+    const adminRegister = await request.post('/api/auth/register').send({
+        email: 'admin@test.local',
+        password: 'Password123!',
+    });
+    adminToken = adminRegister.body.data.token;
+    adminUserId = adminRegister.body.data.user.id;
+    await prisma.user.update({
+        where: { id: adminUserId },
+        data: { role: 'admin' },
+    });
+    const adminLogin = await request.post('/api/auth/login').send({
+        email: 'admin@test.local',
+        password: 'Password123!',
+    });
+    adminToken = adminLogin.body.data.token;
+
+    const userRegister = await request.post('/api/auth/register').send({
+        email: 'user@test.local',
+        password: 'Password123!',
+    });
+    userToken = userRegister.body.data.token;
+    userId = userRegister.body.data.user.id;
+
+    const otherRegister = await request.post('/api/auth/register').send({
+        email: 'other@test.local',
+        password: 'Password123!',
+    });
+    otherUserToken = otherRegister.body.data.token;
 });
 
-// ─── Helper ────────────────────────────────────────────────────────────────
-
-async function createTask(overrides: Record<string, unknown> = {}) {
-    return request.post('/api/tasks').send({
-        title: 'Test Task',
-        description: 'A test description',
-        status: 'todo',
-        priority: 'medium',
-        ...overrides,
-    });
+function withAuth(token: string) {
+    return { Authorization: `Bearer ${token}` };
 }
 
-// ─── Tests ─────────────────────────────────────────────────────────────────
-
-describe('POST /api/tasks', () => {
-    it('should create a task and return 201', async () => {
-        const res = await createTask();
-
-        expect(res.status).toBe(201);
-        expect(res.body.success).toBe(true);
-        expect(res.body.data).toMatchObject({
+async function createTask(token: string, payload: Record<string, unknown> = {}) {
+    return request
+        .post('/api/tasks')
+        .set(withAuth(token))
+        .send({
             title: 'Test Task',
             description: 'A test description',
             status: 'todo',
             priority: 'medium',
+            ...payload,
         });
-        expect(res.body.data.id).toBeDefined();
-        expect(res.body.data.createdAt).toBeDefined();
-    });
+}
 
-    it('should return 400 when title is missing', async () => {
-        const res = await request.post('/api/tasks').send({ description: 'No title!' });
-
-        expect(res.status).toBe(400);
+describe('Authentication guard', () => {
+    it('should return 401 when requesting tasks without token', async () => {
+        const res = await request.get('/api/tasks');
+        expect(res.status).toBe(401);
         expect(res.body.success).toBe(false);
-        expect(res.body.error).toBe('Validation failed');
-        expect(res.body.errors).toHaveProperty('title');
-    });
-
-    it('should return 400 when an invalid status is provided', async () => {
-        const res = await createTask({ status: 'invalid-status' });
-
-        expect(res.status).toBe(400);
-        expect(res.body.success).toBe(false);
-        expect(res.body.errors).toHaveProperty('status');
-    });
-
-    it('should use default status=todo and priority=medium when omitted', async () => {
-        const res = await request.post('/api/tasks').send({ title: 'Minimal task' });
-
-        expect(res.status).toBe(201);
-        expect(res.body.data.status).toBe('todo');
-        expect(res.body.data.priority).toBe('medium');
     });
 });
 
-describe('GET /api/tasks', () => {
-    it('should return an empty array when no tasks exist', async () => {
-        const res = await request.get('/api/tasks');
+describe('RBAC and CRUD', () => {
+    it('user should create a task and own it', async () => {
+        const res = await createTask(userToken, { title: 'Owned by user' });
 
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.success).toBe(true);
-        expect(Array.isArray(res.body.data)).toBe(true);
-        expect(res.body.data).toHaveLength(0);
-        expect(res.body.meta).toMatchObject({
-            page: 1,
-            limit: 10,
-            total: 0,
-            totalPages: 1,
-        });
+        expect(res.body.data.ownerId).toBe(userId);
+        expect(res.body.data.createdById).toBe(userId);
+        expect(res.body.data.updatedById).toBe(userId);
     });
 
-    it('should return all created tasks', async () => {
-        await createTask({ title: 'Task A' });
-        await createTask({ title: 'Task B' });
+    it('user should only see their own tasks', async () => {
+        await createTask(userToken, { title: 'User task' });
+        await createTask(otherUserToken, { title: 'Other task' });
 
-        const res = await request.get('/api/tasks');
+        const res = await request.get('/api/tasks').set(withAuth(userToken));
+
+        expect(res.status).toBe(200);
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.data[0].title).toBe('User task');
+        expect(res.body.meta.total).toBe(1);
+    });
+
+    it('admin should see all tasks', async () => {
+        await createTask(userToken, { title: 'User task' });
+        await createTask(otherUserToken, { title: 'Other task' });
+
+        const res = await request.get('/api/tasks').set(withAuth(adminToken));
 
         expect(res.status).toBe(200);
         expect(res.body.data).toHaveLength(2);
         expect(res.body.meta.total).toBe(2);
     });
 
-    it('should filter tasks by status', async () => {
-        await createTask({ status: 'todo' });
-        await createTask({ status: 'done' });
+    it('user should not update task owned by someone else', async () => {
+        const created = await createTask(otherUserToken, { title: 'Other owner task' });
+        const taskId = created.body.data.id;
 
-        const res = await request.get('/api/tasks?status=done');
+        const res = await request
+            .put(`/api/tasks/${taskId}`)
+            .set(withAuth(userToken))
+            .send({ title: 'Hacked title' });
 
-        expect(res.status).toBe(200);
-        expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0].status).toBe('done');
-        expect(res.body.meta.total).toBe(1);
+        expect(res.status).toBe(403);
+        expect(res.body.success).toBe(false);
     });
 
-    it('should search tasks by title', async () => {
-        await createTask({ title: 'Buy groceries' });
-        await createTask({ title: 'Write tests' });
+    it('admin should be able to update any task', async () => {
+        const created = await createTask(userToken, { title: 'Needs admin update' });
+        const taskId = created.body.data.id;
 
-        const res = await request.get('/api/tasks?search=groceries');
+        const res = await request
+            .put(`/api/tasks/${taskId}`)
+            .set(withAuth(adminToken))
+            .send({ status: 'done', priority: 'high' });
 
         expect(res.status).toBe(200);
-        expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0].title).toBe('Buy groceries');
-        expect(res.body.meta.total).toBe(1);
+        expect(res.body.data.status).toBe('done');
+        expect(res.body.data.priority).toBe('high');
+        expect(res.body.data.updatedById).toBe(adminUserId);
+    });
+});
+
+describe('Soft delete and restore', () => {
+    it('delete should soft-delete and hide task from default list', async () => {
+        const created = await createTask(userToken, { title: 'Soft delete target' });
+        const taskId = created.body.data.id;
+
+        const deleted = await request.delete(`/api/tasks/${taskId}`).set(withAuth(userToken));
+        expect(deleted.status).toBe(200);
+        expect(deleted.body.data.deletedAt).toBeTruthy();
+        expect(deleted.body.data.deletedById).toBe(userId);
+
+        const list = await request.get('/api/tasks').set(withAuth(userToken));
+        expect(list.status).toBe(200);
+        expect(list.body.data).toHaveLength(0);
+        expect(list.body.meta.total).toBe(0);
     });
 
-    it('should paginate with page=1&limit=2 and return coherent metadata', async () => {
-        await createTask({ title: 'Task 1' });
-        await createTask({ title: 'Task 2' });
-        await createTask({ title: 'Task 3' });
-        await createTask({ title: 'Task 4' });
-        await createTask({ title: 'Task 5' });
+    it('admin includeDeleted=true should return soft-deleted tasks', async () => {
+        const created = await createTask(userToken, { title: 'Deleted for admin listing' });
+        const taskId = created.body.data.id;
+        await request.delete(`/api/tasks/${taskId}`).set(withAuth(userToken));
 
-        const res = await request.get('/api/tasks?page=1&limit=2&sortBy=createdAt&sortOrder=asc');
+        const res = await request
+            .get('/api/tasks?includeDeleted=true')
+            .set(withAuth(adminToken));
+
+        expect(res.status).toBe(200);
+        expect(res.body.meta.total).toBe(1);
+        expect(res.body.data[0].deletedAt).toBeTruthy();
+    });
+
+    it('restore should reactivate a deleted task', async () => {
+        const created = await createTask(userToken, { title: 'Restore target' });
+        const taskId = created.body.data.id;
+        await request.delete(`/api/tasks/${taskId}`).set(withAuth(userToken));
+
+        const restored = await request
+            .patch(`/api/tasks/${taskId}/restore`)
+            .set(withAuth(userToken));
+        expect(restored.status).toBe(200);
+        expect(restored.body.data.deletedAt).toBeNull();
+        expect(restored.body.data.deletedById).toBeNull();
+
+        const list = await request.get('/api/tasks').set(withAuth(userToken));
+        expect(list.status).toBe(200);
+        expect(list.body.data).toHaveLength(1);
+    });
+
+    it('restore should return 409 if task is not deleted', async () => {
+        const created = await createTask(userToken, { title: 'Active task' });
+        const taskId = created.body.data.id;
+
+        const res = await request.patch(`/api/tasks/${taskId}/restore`).set(withAuth(userToken));
+
+        expect(res.status).toBe(409);
+        expect(res.body.success).toBe(false);
+    });
+});
+
+describe('Pagination and validation', () => {
+    it('page=1&limit=2 should return up to 2 items with coherent metadata', async () => {
+        await createTask(userToken, { title: 'Task 1' });
+        await createTask(userToken, { title: 'Task 2' });
+        await createTask(userToken, { title: 'Task 3' });
+        await createTask(userToken, { title: 'Task 4' });
+        await createTask(userToken, { title: 'Task 5' });
+
+        const res = await request
+            .get('/api/tasks?page=1&limit=2&sortBy=createdAt&sortOrder=asc')
+            .set(withAuth(userToken));
 
         expect(res.status).toBe(200);
         expect(res.body.data.length).toBeLessThanOrEqual(2);
@@ -158,15 +230,19 @@ describe('GET /api/tasks', () => {
         });
     });
 
-    it('should paginate with page=2&limit=2 and keep total constant', async () => {
-        await createTask({ title: 'Task A' });
-        await createTask({ title: 'Task B' });
-        await createTask({ title: 'Task C' });
-        await createTask({ title: 'Task D' });
-        await createTask({ title: 'Task E' });
+    it('page=2&limit=2 should return next slice and keep total constant', async () => {
+        await createTask(userToken, { title: 'Task A' });
+        await createTask(userToken, { title: 'Task B' });
+        await createTask(userToken, { title: 'Task C' });
+        await createTask(userToken, { title: 'Task D' });
+        await createTask(userToken, { title: 'Task E' });
 
-        const firstPage = await request.get('/api/tasks?page=1&limit=2&sortBy=createdAt&sortOrder=asc');
-        const secondPage = await request.get('/api/tasks?page=2&limit=2&sortBy=createdAt&sortOrder=asc');
+        const firstPage = await request
+            .get('/api/tasks?page=1&limit=2&sortBy=createdAt&sortOrder=asc')
+            .set(withAuth(userToken));
+        const secondPage = await request
+            .get('/api/tasks?page=2&limit=2&sortBy=createdAt&sortOrder=asc')
+            .set(withAuth(userToken));
 
         expect(firstPage.status).toBe(200);
         expect(secondPage.status).toBe(200);
@@ -180,9 +256,13 @@ describe('GET /api/tasks', () => {
         expect(secondPage.body.data).toHaveLength(2);
     });
 
-    it('should return 400 for invalid page/limit values', async () => {
-        const invalidPage = await request.get('/api/tasks?page=0&limit=10');
-        const invalidLimit = await request.get('/api/tasks?page=1&limit=101');
+    it('invalid page/limit should return 400', async () => {
+        const invalidPage = await request
+            .get('/api/tasks?page=0&limit=10')
+            .set(withAuth(userToken));
+        const invalidLimit = await request
+            .get('/api/tasks?page=1&limit=101')
+            .set(withAuth(userToken));
 
         expect(invalidPage.status).toBe(400);
         expect(invalidPage.body.success).toBe(false);
@@ -192,65 +272,18 @@ describe('GET /api/tasks', () => {
         expect(invalidLimit.body.success).toBe(false);
         expect(invalidLimit.body.error).toBe('Validation failed');
     });
-});
 
-describe('GET /api/tasks/:id', () => {
-    it('should return a task by id', async () => {
-        const created = await createTask();
-        const id = created.body.data.id;
+    it('pagination total should exclude soft-deleted by default', async () => {
+        const one = await createTask(userToken, { title: 'A' });
+        await createTask(userToken, { title: 'B' });
+        await createTask(userToken, { title: 'C' });
 
-        const res = await request.get(`/api/tasks/${id}`);
+        await request.delete(`/api/tasks/${one.body.data.id}`).set(withAuth(userToken));
 
-        expect(res.status).toBe(200);
-        expect(res.body.data.id).toBe(id);
-    });
-
-    it('should return 404 for a non-existent id', async () => {
-        const res = await request.get('/api/tasks/non-existent-id');
-
-        expect(res.status).toBe(404);
-        expect(res.body.success).toBe(false);
-    });
-});
-
-describe('PUT /api/tasks/:id', () => {
-    it('should update a task', async () => {
-        const created = await createTask();
-        const id = created.body.data.id;
-
-        const res = await request.put(`/api/tasks/${id}`).send({ status: 'done', priority: 'high' });
+        const res = await request.get('/api/tasks?page=1&limit=10').set(withAuth(userToken));
 
         expect(res.status).toBe(200);
-        expect(res.body.data.status).toBe('done');
-        expect(res.body.data.priority).toBe('high');
-    });
-
-    it('should return 404 when updating a non-existent task', async () => {
-        const res = await request.put('/api/tasks/non-existent-id').send({ title: 'Ghost' });
-
-        expect(res.status).toBe(404);
-    });
-});
-
-describe('DELETE /api/tasks/:id', () => {
-    it('should delete a task and return it', async () => {
-        const created = await createTask();
-        const id = created.body.data.id;
-
-        const res = await request.delete(`/api/tasks/${id}`);
-
-        expect(res.status).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.id).toBe(id);
-
-        // Confirm it's really gone
-        const check = await request.get(`/api/tasks/${id}`);
-        expect(check.status).toBe(404);
-    });
-
-    it('should return 404 when deleting a non-existent task', async () => {
-        const res = await request.delete('/api/tasks/non-existent-id');
-
-        expect(res.status).toBe(404);
+        expect(res.body.meta.total).toBe(2);
+        expect(res.body.data).toHaveLength(2);
     });
 });

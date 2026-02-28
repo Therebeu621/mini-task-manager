@@ -1,12 +1,25 @@
 /**
- * Shared TypeScript types for the Task domain (client-side).
- * Keeps front and back in sync without sharing actual code.
+ * Shared TypeScript types for the frontend domain.
  */
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskSortBy = 'title' | 'dueDate' | 'createdAt' | 'priority' | 'status';
 export type SortOrder = 'asc' | 'desc';
+export type UserRole = 'user' | 'admin';
+
+export interface AuthUser {
+    id: string;
+    email: string;
+    role: UserRole;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AuthPayload {
+    token: string;
+    user: AuthUser;
+}
 
 export interface Task {
     id: string;
@@ -14,8 +27,12 @@ export interface Task {
     description: string | null;
     status: TaskStatus;
     priority: TaskPriority;
-    /** ISO 8601 date-time string */
     dueDate: string | null;
+    ownerId: string;
+    createdById: string;
+    updatedById: string;
+    deletedAt: string | null;
+    deletedById: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -36,6 +53,7 @@ export interface TaskFilters {
     search?: string;
     sortBy?: TaskSortBy;
     sortOrder?: SortOrder;
+    includeDeleted?: boolean;
 }
 
 export interface TaskQueryParams {
@@ -46,6 +64,7 @@ export interface TaskQueryParams {
     sortOrder?: SortOrder;
     page?: number;
     limit?: number;
+    includeDeleted?: boolean;
 }
 
 export interface PaginationMeta {

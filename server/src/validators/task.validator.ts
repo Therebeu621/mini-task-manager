@@ -6,6 +6,14 @@ import { z } from 'zod';
 
 const taskStatusEnum = z.enum(['todo', 'doing', 'done']);
 const taskPriorityEnum = z.enum(['low', 'medium', 'high']);
+const booleanQueryParam = z.preprocess((value) => {
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+    }
+    return value;
+}, z.boolean());
 
 // ─── Create ────────────────────────────────────────────────────────────────
 
@@ -53,6 +61,7 @@ export const taskQuerySchema = z.object({
     search: z.string().max(200).trim().optional(),
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+    includeDeleted: booleanQueryParam.optional().default(false),
     sortBy: z
         .enum(['title', 'dueDate', 'createdAt', 'priority', 'status'])
         .optional()

@@ -16,6 +16,8 @@ export default defineConfig({
             NODE_ENV: 'test',
             DATABASE_URL: 'file:./test.db',
             PORT: '3002',
+            JWT_SECRET: 'test-jwt-secret',
+            JWT_EXPIRES_IN: '12h',
         },
         // Show verbose output
         reporter: 'verbose',

@@ -11,15 +11,45 @@ datasource db {
 }
 
 model Task {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
   // SQLite connector does not support Prisma enums; constrained in Zod validation.
-  status      String   @default("todo")
-  priority    String   @default("medium")
+  status      String    @default("todo")
+  priority    String    @default("medium")
   dueDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  ownerId     String
+  createdById String
+  updatedById String
+  deletedAt   DateTime?
+  deletedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
+  owner     User  @relation("TaskOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("TaskCreator", fields: [createdById], references: [id])
+  updatedBy User  @relation("TaskUpdater", fields: [updatedById], references: [id])
+  deletedBy User? @relation("TaskDeleter", fields: [deletedById], references: [id])
+
+  @@index([ownerId])
+  @@index([deletedAt])
+  @@index([ownerId, deletedAt])
   @@map("tasks")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  // SQLite connector does not support Prisma enums; constrained in Zod validation.
+  role         String   @default("user")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedTasks   Task[] @relation("TaskOwner")
+  createdTasks Task[] @relation("TaskCreator")
+  updatedTasks Task[] @relation("TaskUpdater")
+  deletedTasks Task[] @relation("TaskDeleter")
+
+  @@map("users")
 }

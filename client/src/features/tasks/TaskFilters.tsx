@@ -7,9 +7,12 @@ interface TaskFiltersProps {
     priority: TaskPriority | '';
     sortBy: TaskSortBy;
     sortOrder: SortOrder;
+    includeDeleted: boolean;
+    canManageDeleted: boolean;
     onStatusChange: (status: TaskStatus | '') => void;
     onPriorityChange: (priority: TaskPriority | '') => void;
     onSortChange: (sortBy: TaskSortBy, sortOrder: SortOrder) => void;
+    onIncludeDeletedChange: (value: boolean) => void;
     onReset: () => void;
 }
 
@@ -43,9 +46,12 @@ export function TaskFilters({
     priority,
     sortBy,
     sortOrder,
+    includeDeleted,
+    canManageDeleted,
     onStatusChange,
     onPriorityChange,
     onSortChange,
+    onIncludeDeletedChange,
     onReset,
 }: TaskFiltersProps) {
     return (
@@ -102,6 +108,18 @@ export function TaskFilters({
                     onSortChange(nextSortBy, nextSortOrder);
                 }}
             />
+
+            {canManageDeleted && (
+                <label className="task-filters__toggle" htmlFor="include-deleted">
+                    <input
+                        id="include-deleted"
+                        type="checkbox"
+                        checked={includeDeleted}
+                        onChange={(event) => onIncludeDeletedChange(event.target.checked)}
+                    />
+                    <span>Inclure les tâches supprimées</span>
+                </label>
+            )}
 
             <Button variant="secondary" onClick={onReset}>
                 Reset filters
