@@ -102,12 +102,27 @@ Base URL: `http://localhost:3001`
 - `sortOrder`: `asc|desc`
 - `page`: entier `>= 1` (défaut `1`)
 - `limit`: entier `1..100` (défaut `10`)
-- `includeDeleted`: `true|false` (défaut `false`)
+- `includeDeleted`: `true|false` (**admin uniquement**, défaut `false`)
 
 Exemple:
 
 ```bash
 curl "http://localhost:3001/api/tasks?page=2&limit=10&status=doing&sortBy=createdAt&sortOrder=desc"
+```
+
+Comme les routes `/api/tasks*` sont protégées, voici un exemple complet avec JWT:
+
+```bash
+# 1) Login pour récupérer un token
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@mini-task.local","password":"User123!"}'
+```
+
+```bash
+# 2) Appel d'une route tasks avec Authorization Bearer
+curl "http://localhost:3001/api/tasks?page=1&limit=10" \
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 Réponse paginée:
