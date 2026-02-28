@@ -5,6 +5,8 @@
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
+export type TaskSortBy = 'title' | 'dueDate' | 'createdAt' | 'priority' | 'status';
+export type SortOrder = 'asc' | 'desc';
 
 export interface Task {
     id: string;
@@ -32,14 +34,37 @@ export interface TaskFilters {
     status?: TaskStatus | '';
     priority?: TaskPriority | '';
     search?: string;
-    sortBy?: 'createdAt' | 'updatedAt' | 'dueDate' | 'priority' | 'title';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: TaskSortBy;
+    sortOrder?: SortOrder;
+}
+
+export interface TaskQueryParams {
+    status?: TaskStatus | '';
+    priority?: TaskPriority | '';
+    search?: string;
+    sortBy?: TaskSortBy;
+    sortOrder?: SortOrder;
+    page?: number;
+    limit?: number;
+}
+
+export interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
+export interface PaginatedTasksResponse {
+    data: Task[];
+    meta: PaginationMeta;
 }
 
 /** Standard API response envelope from the backend */
 export interface ApiResponse<T> {
     success: boolean;
-    data?: T;
+    data: T;
+    meta?: PaginationMeta;
     error?: string;
     errors?: Record<string, string[]>;
 }

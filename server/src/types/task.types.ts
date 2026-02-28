@@ -32,8 +32,17 @@ export interface TaskQuery {
     status?: TaskStatus;
     priority?: TaskPriority;
     search?: string;
-    sortBy?: 'createdAt' | 'updatedAt' | 'dueDate' | 'priority' | 'title';
+    page?: number;
+    limit?: number;
+    sortBy?: 'title' | 'dueDate' | 'createdAt' | 'priority' | 'status';
     sortOrder?: 'asc' | 'desc';
+}
+
+export interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
 }
 
 /** Standard API response envelope */

@@ -96,6 +96,12 @@ describe('GET /api/tasks', () => {
         expect(res.body.success).toBe(true);
         expect(Array.isArray(res.body.data)).toBe(true);
         expect(res.body.data).toHaveLength(0);
+        expect(res.body.meta).toMatchObject({
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 1,
+        });
     });
 
     it('should return all created tasks', async () => {
@@ -106,6 +112,7 @@ describe('GET /api/tasks', () => {
 
         expect(res.status).toBe(200);
         expect(res.body.data).toHaveLength(2);
+        expect(res.body.meta.total).toBe(2);
     });
 
     it('should filter tasks by status', async () => {
@@ -117,6 +124,7 @@ describe('GET /api/tasks', () => {
         expect(res.status).toBe(200);
         expect(res.body.data).toHaveLength(1);
         expect(res.body.data[0].status).toBe('done');
+        expect(res.body.meta.total).toBe(1);
     });
 
     it('should search tasks by title', async () => {
@@ -128,6 +136,61 @@ describe('GET /api/tasks', () => {
         expect(res.status).toBe(200);
         expect(res.body.data).toHaveLength(1);
         expect(res.body.data[0].title).toBe('Buy groceries');
+        expect(res.body.meta.total).toBe(1);
+    });
+
+    it('should paginate with page=1&limit=2 and return coherent metadata', async () => {
+        await createTask({ title: 'Task 1' });
+        await createTask({ title: 'Task 2' });
+        await createTask({ title: 'Task 3' });
+        await createTask({ title: 'Task 4' });
+        await createTask({ title: 'Task 5' });
+
+        const res = await request.get('/api/tasks?page=1&limit=2&sortBy=createdAt&sortOrder=asc');
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.length).toBeLessThanOrEqual(2);
+        expect(res.body.meta).toMatchObject({
+            page: 1,
+            limit: 2,
+            total: 5,
+            totalPages: 3,
+        });
+    });
+
+    it('should paginate with page=2&limit=2 and keep total constant', async () => {
+        await createTask({ title: 'Task A' });
+        await createTask({ title: 'Task B' });
+        await createTask({ title: 'Task C' });
+        await createTask({ title: 'Task D' });
+        await createTask({ title: 'Task E' });
+
+        const firstPage = await request.get('/api/tasks?page=1&limit=2&sortBy=createdAt&sortOrder=asc');
+        const secondPage = await request.get('/api/tasks?page=2&limit=2&sortBy=createdAt&sortOrder=asc');
+
+        expect(firstPage.status).toBe(200);
+        expect(secondPage.status).toBe(200);
+        expect(firstPage.body.meta.total).toBe(secondPage.body.meta.total);
+        expect(secondPage.body.meta).toMatchObject({
+            page: 2,
+            limit: 2,
+            total: 5,
+            totalPages: 3,
+        });
+        expect(secondPage.body.data).toHaveLength(2);
+    });
+
+    it('should return 400 for invalid page/limit values', async () => {
+        const invalidPage = await request.get('/api/tasks?page=0&limit=10');
+        const invalidLimit = await request.get('/api/tasks?page=1&limit=101');
+
+        expect(invalidPage.status).toBe(400);
+        expect(invalidPage.body.success).toBe(false);
+        expect(invalidPage.body.error).toBe('Validation failed');
+
+        expect(invalidLimit.status).toBe(400);
+        expect(invalidLimit.body.success).toBe(false);
+        expect(invalidLimit.body.error).toBe('Validation failed');
     });
 });
 

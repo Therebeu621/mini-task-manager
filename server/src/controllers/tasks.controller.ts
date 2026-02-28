@@ -10,8 +10,8 @@ export const TasksController = {
     /** GET /api/tasks */
     async list(req: Request, res: Response, next: NextFunction) {
         try {
-            const tasks = await TasksService.list(req.query as unknown as TaskQueryInput);
-            res.json({ success: true, data: tasks });
+            const result = await TasksService.list(req.query as unknown as TaskQueryInput);
+            res.json({ success: true, data: result.data, meta: result.meta });
         } catch (err) {
             next(err);
         }

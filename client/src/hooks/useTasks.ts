@@ -3,20 +3,21 @@
  * Abstracts TanStack Query mutations and queries behind a clean API.
  */
 import {
+    keepPreviousData,
     useQuery,
     useMutation,
     useQueryClient,
-    type QueryKey,
 } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { tasksApi } from '../api/tasks.api';
-import type { CreateTaskInput, UpdateTaskInput, TaskFilters } from '../types/task.types';
+import type { CreateTaskInput, UpdateTaskInput, TaskQueryParams } from '../types/task.types';
 
 // ─── Query keys ───────────────────────────────────────────
 
 export const TASK_KEYS = {
-    all: ['tasks'] as QueryKey,
-    list: (filters: TaskFilters) => ['tasks', 'list', filters] as QueryKey,
-    detail: (id: string) => ['tasks', 'detail', id] as QueryKey,
+    all: ['tasks'] as const,
+    list: (params: TaskQueryParams) => ['tasks', 'list', params] as const,
+    detail: (id: string) => ['tasks', 'detail', id] as const,
 };
 
 // ─── Queries ──────────────────────────────────────────────
@@ -24,12 +25,32 @@ export const TASK_KEYS = {
 /**
  * Fetch the full task list, re-fetching whenever filters change.
  */
-export function useTasksQuery(filters: TaskFilters) {
-    return useQuery({
-        queryKey: TASK_KEYS.list(filters),
-        queryFn: () => tasksApi.list(filters),
+export function useTasksQuery(params: TaskQueryParams) {
+    const queryClient = useQueryClient();
+    const query = useQuery({
+        queryKey: TASK_KEYS.list(params),
+        queryFn: () => tasksApi.list(params),
+        placeholderData: keepPreviousData,
         staleTime: 10_000, // 10 seconds
     });
+
+    useEffect(() => {
+        if (!query.data || query.isFetching) {
+            return;
+        }
+
+        const nextPage = (params.page ?? 1) + 1;
+        if (nextPage > query.data.meta.totalPages) {
+            return;
+        }
+
+        void queryClient.prefetchQuery({
+            queryKey: TASK_KEYS.list({ ...params, page: nextPage }),
+            queryFn: () => tasksApi.list({ ...params, page: nextPage }),
+        });
+    }, [params, query.data, query.isFetching, queryClient]);
+
+    return query;
 }
 
 // ─── Mutations ────────────────────────────────────────────

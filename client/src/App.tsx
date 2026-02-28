@@ -1,38 +1,87 @@
-import { useMemo, useState } from 'react';
-import type { CreateTaskInput, Task, TaskFilters } from './types/task.types';
-import { TaskFiltersBar } from './components/TaskFilters';
-import { TaskList } from './components/TaskList';
-import { TaskForm } from './components/TaskForm';
-import { ToastContainer } from './components/Toast';
+import { useEffect, useMemo, useState } from 'react';
+import { Button } from './components/ui/Button';
+import { Drawer } from './components/ui/Drawer';
+import { Pagination } from './components/ui/Pagination';
+import { ToastContainer } from './components/ui/Toast';
+import { TaskFilters } from './features/tasks/TaskFilters';
+import { TaskForm } from './features/tasks/TaskForm';
+import { TaskList } from './features/tasks/TaskList';
+import { TaskToolbar } from './features/tasks/TaskToolbar';
+import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useToast } from './hooks/useToast';
-import {
-    useCreateTask,
-    useDeleteTask,
-    useTasksQuery,
-    useUpdateTask,
-} from './hooks/useTasks';
+import { useCreateTask, useDeleteTask, useTasksQuery, useUpdateTask } from './hooks/useTasks';
+import type {
+    CreateTaskInput,
+    SortOrder,
+    Task,
+    TaskPriority,
+    TaskQueryParams,
+    TaskSortBy,
+    TaskStatus,
+} from './types/task.types';
 
-const DEFAULT_FILTERS: TaskFilters = {
+const DEFAULT_QUERY: TaskQueryParams = {
+    status: '',
+    priority: '',
     sortBy: 'createdAt',
     sortOrder: 'desc',
+    page: 1,
+    limit: 10,
 };
 
 export default function App() {
-    const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
+    const [queryState, setQueryState] = useState<TaskQueryParams>(DEFAULT_QUERY);
+    const [searchInput, setSearchInput] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+    const debouncedSearch = useDebouncedValue(searchInput, 300);
 
     const { toasts, addToast, dismiss } = useToast();
-    const tasksQuery = useTasksQuery(filters);
     const createMutation = useCreateTask();
     const updateMutation = useUpdateTask();
     const deleteMutation = useDeleteTask();
 
-    const isFiltered = useMemo(() => {
-        return Boolean(filters.status || filters.priority || filters.search?.trim());
-    }, [filters]);
+    const query = useMemo(
+        () => ({
+            ...queryState,
+            search: debouncedSearch.trim() || undefined,
+        }),
+        [debouncedSearch, queryState],
+    );
+
+    const tasksQuery = useTasksQuery(query);
+
+    useEffect(() => {
+        setQueryState((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }));
+    }, [debouncedSearch]);
+
+    const response = tasksQuery.data ?? {
+        data: [],
+        meta: {
+            page: queryState.page ?? 1,
+            limit: queryState.limit ?? 10,
+            total: 0,
+            totalPages: 1,
+        },
+    };
+
+    const hasActiveFilters = useMemo(
+        () =>
+            Boolean(
+                queryState.status ||
+                    queryState.priority ||
+                    debouncedSearch.trim() ||
+                    queryState.sortBy !== DEFAULT_QUERY.sortBy ||
+                    queryState.sortOrder !== DEFAULT_QUERY.sortOrder,
+            ),
+        [debouncedSearch, queryState],
+    );
 
     const isFormPending = createMutation.isPending || updateMutation.isPending;
+    const errorMessage =
+        tasksQuery.error instanceof Error ? tasksQuery.error.message : 'Unexpected error';
 
     function openCreateForm() {
         setEditingTask(null);
@@ -85,47 +134,128 @@ export default function App() {
     }
 
     function handleResetFilters() {
-        setFilters(DEFAULT_FILTERS);
+        setSearchInput('');
+        setQueryState(DEFAULT_QUERY);
+        setIsFilterDrawerOpen(false);
+    }
+
+    function updateFilters(next: Partial<TaskQueryParams>) {
+        setQueryState((prev) => ({ ...prev, ...next, page: 1 }));
+    }
+
+    function handleStatusChange(status: TaskStatus | '') {
+        updateFilters({ status });
+    }
+
+    function handlePriorityChange(priority: TaskPriority | '') {
+        updateFilters({ priority });
+    }
+
+    function handleSortChange(sortBy: TaskSortBy, sortOrder: SortOrder) {
+        updateFilters({ sortBy, sortOrder });
+    }
+
+    function handlePageChange(page: number) {
+        const safePage = Math.min(Math.max(page, 1), response.meta.totalPages);
+        setQueryState((prev) => ({ ...prev, page: safePage }));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function handleLimitChange(limit: number) {
+        setQueryState((prev) => ({ ...prev, page: 1, limit }));
     }
 
     return (
         <>
-            <header className="app-header">
-                <div className="app-header__inner">
-                    <h1 className="app-header__title">Mini Task Manager</h1>
-                    <button className="btn btn-primary" onClick={openCreateForm}>
-                        New Task
-                    </button>
+            <header className="product-header">
+                <div className="product-header__content">
+                    <div>
+                        <p className="product-header__eyebrow">Task Operations</p>
+                        <h1 className="product-header__title">Mini Task Manager</h1>
+                    </div>
+                    <div className="product-header__stats">
+                        <p className="product-header__count">
+                            Total tasks: <strong>{response.meta.total}</strong>
+                        </p>
+                        <Button onClick={openCreateForm} aria-label="Create task">
+                            New task
+                        </Button>
+                    </div>
                 </div>
             </header>
 
-            <main className="app-main">
-                <div className="container">
-                    <TaskFiltersBar
-                        filters={filters}
-                        onChange={setFilters}
-                        onReset={handleResetFilters}
-                    />
+            <main className="product-main">
+                <div className="product-layout">
+                    <div className="product-layout__sidebar">
+                        <TaskFilters
+                            status={queryState.status ?? ''}
+                            priority={queryState.priority ?? ''}
+                            sortBy={queryState.sortBy ?? 'createdAt'}
+                            sortOrder={queryState.sortOrder ?? 'desc'}
+                            onStatusChange={handleStatusChange}
+                            onPriorityChange={handlePriorityChange}
+                            onSortChange={handleSortChange}
+                            onReset={handleResetFilters}
+                        />
+                    </div>
 
-                    <TaskList
-                        tasks={tasksQuery.data}
-                        isLoading={tasksQuery.isLoading}
-                        error={tasksQuery.error}
-                        isFiltered={isFiltered}
-                        onEdit={openEditForm}
-                        onDelete={handleDelete}
-                        onNewTask={openCreateForm}
-                        onResetFilters={handleResetFilters}
-                    />
+                    <section className="product-layout__content">
+                        <TaskToolbar
+                            search={searchInput}
+                            hasActiveFilters={hasActiveFilters}
+                            onSearchChange={setSearchInput}
+                            onOpenFilters={() => setIsFilterDrawerOpen(true)}
+                            onResetFilters={handleResetFilters}
+                        />
+
+                        <TaskList
+                            tasks={response.data}
+                            isLoading={tasksQuery.isPending && !tasksQuery.data}
+                            isError={tasksQuery.isError}
+                            errorMessage={errorMessage}
+                            hasFilters={hasActiveFilters}
+                            onCreateTask={openCreateForm}
+                            onResetFilters={handleResetFilters}
+                            onEditTask={openEditForm}
+                            onDeleteTask={handleDelete}
+                        />
+
+                        <Pagination
+                            page={response.meta.page}
+                            limit={response.meta.limit}
+                            total={response.meta.total}
+                            totalPages={response.meta.totalPages}
+                            isFetching={tasksQuery.isFetching}
+                            onPageChange={handlePageChange}
+                            onLimitChange={handleLimitChange}
+                        />
+                    </section>
                 </div>
             </main>
+
+            <Drawer
+                open={isFilterDrawerOpen}
+                title="Task filters"
+                onClose={() => setIsFilterDrawerOpen(false)}
+            >
+                <TaskFilters
+                    status={queryState.status ?? ''}
+                    priority={queryState.priority ?? ''}
+                    sortBy={queryState.sortBy ?? 'createdAt'}
+                    sortOrder={queryState.sortOrder ?? 'desc'}
+                    onStatusChange={handleStatusChange}
+                    onPriorityChange={handlePriorityChange}
+                    onSortChange={handleSortChange}
+                    onReset={handleResetFilters}
+                />
+            </Drawer>
 
             {isFormOpen && (
                 <TaskForm
                     task={editingTask}
-                    onSubmit={handleSubmit}
-                    onCancel={closeForm}
                     isPending={isFormPending}
+                    onCancel={closeForm}
+                    onSubmit={handleSubmit}
                 />
             )}
 

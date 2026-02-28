@@ -1,225 +1,125 @@
 # Mini Task Manager
 
-Mini projet fullstack TypeScript en monorepo:
-- Backend: Node.js + Express + Prisma + SQLite
-- Frontend: React + Vite + TanStack Query
-- Qualite: ESLint + Prettier
-- Tests: Vitest + Supertest (backend)
+[![CI](https://github.com/Therebeu621/mini-task-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/Therebeu621/mini-task-manager/actions/workflows/ci.yml)
 
-## Arborescence
+Application fullstack de gestion de tâches, orientée produit, construite en monorepo TypeScript.
 
-```text
-reactnodejs/
-├── client/
-│   ├── Dockerfile
-│   ├── .env.example
-│   ├── package.json
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── vite-env.d.ts
-│   │   ├── api/tasks.api.ts
-│   │   ├── components/
-│   │   │   ├── EmptyState.tsx
-│   │   │   ├── LoadingSpinner.tsx
-│   │   │   ├── TaskCard.tsx
-│   │   │   ├── TaskFilters.tsx
-│   │   │   ├── TaskForm.tsx
-│   │   │   ├── TaskList.tsx
-│   │   │   └── Toast.tsx
-│   │   ├── hooks/
-│   │   │   ├── useTasks.ts
-│   │   │   └── useToast.ts
-│   │   ├── types/task.types.ts
-│   │   ├── utils/formatters.ts
-│   │   └── index.css
-│   ├── tsconfig.json
-│   └── vite.config.ts
-├── server/
-│   ├── Dockerfile
-│   ├── .env.example
-│   ├── package.json
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── seed.ts
-│   ├── src/
-│   │   ├── app.ts
-│   │   ├── index.ts
-│   │   ├── controllers/tasks.controller.ts
-│   │   ├── middleware/
-│   │   │   ├── errorHandler.ts
-│   │   │   └── validate.ts
-│   │   ├── routes/
-│   │   │   ├── health.ts
-│   │   │   └── tasks.ts
-│   │   ├── services/tasks.service.ts
-│   │   ├── types/task.types.ts
-│   │   └── validators/task.validator.ts
-│   ├── tests/
-│   │   ├── health.test.ts
-│   │   └── tasks.test.ts
-│   ├── tsconfig.json
-│   └── vitest.config.ts
-├── docker-compose.yml
-├── package.json
-├── tsconfig.base.json
-├── .eslintrc.cjs
-├── .prettierrc
-└── .gitignore
-```
+## Stack
 
-## Fonctionnalites
+- **Frontend**: React + Vite + TanStack Query
+- **Backend**: Node.js + Express + Prisma + SQLite
+- **Qualité**: ESLint + Prettier + Vitest/Supertest
+- **DevOps**: Docker + docker-compose + GitHub Actions
 
-- CRUD des taches
-- Champs: `title`, `description`, `status`, `priority`, `dueDate`, `createdAt`, `updatedAt`
-- Filtres et tri: `status`, `priority`, `dueDate`, `createdAt`, `title`
-- Recherche texte: `title` / `description`
-- Notifications succes/erreur (toasts)
-- Etats loading et empty state
+## Fonctionnalités
 
-## API Endpoints
+- CRUD complet des tâches
+- Recherche + filtres (`status`, `priority`)
+- Tri (`title`, `dueDate`, `createdAt`, `priority`, `status`)
+- Pagination backend et frontend (`page`, `limit`)
+- UI responsive:
+  - desktop: sidebar filtres + liste
+  - mobile: drawer filtres
+- Pagination UI avancée:
+  - First / Prev / Next / Last
+  - numéros + ellipses
+  - taille de page (10 / 20 / 50)
+  - affichage “Showing X-Y of Z”
+- Toasts + états loading / empty / erreur
 
-Base URL backend: `http://localhost:3001`
+## Lancer le projet (recommandé)
 
-- `GET /api/health`
-- `GET /api/tasks?status=&priority=&search=&sortBy=&sortOrder=`
-- `POST /api/tasks`
-- `GET /api/tasks/:id`
-- `PUT /api/tasks/:id`
-- `DELETE /api/tasks/:id`
-
-Exemple payload create/update:
-
-```json
-{
-  "title": "Prepare demo",
-  "description": "Slides + quick runbook",
-  "status": "doing",
-  "priority": "high",
-  "dueDate": "2026-03-01T10:00:00.000Z"
-}
-```
-
-## Variables d environnement
-
-### server/.env
-
-Copier `server/.env.example` vers `server/.env`.
-
-Variables principales:
-- `PORT=3001`
-- `NODE_ENV=development`
-- `DATABASE_URL="file:./dev.db"`
-- `CORS_ORIGIN=http://localhost:5173`
-
-### client/.env.local
-
-Copier `client/.env.example` vers `client/.env.local`.
-
-Variable principale:
-- `VITE_API_URL=http://localhost:3001`
-
-## Lancement local
-
-Pre-requis:
-- Node.js >= 18
-- npm >= 9
-
-1. Installer les dependances:
+### Option 1: Docker (recommandé pour démo portfolio)
 
 ```bash
-npm install
+docker-compose up --build
 ```
 
-2. Initialiser la DB:
-
-```bash
-npm run db:push
-npm run db:seed
-```
-
-3. Lancer en dev (hot reload server + client):
-
-```bash
-npm run dev
-```
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:3001`
-
-## Scripts utiles
-
-Racine:
-
-```bash
-npm run dev
-npm run build
-npm run test
-npm run lint
-npm run format
-npm run db:push
-npm run db:migrate
-npm run db:seed
-```
-
-Server:
-
-```bash
-npm run dev --workspace=server
-npm run test --workspace=server
-```
-
-Client:
-
-```bash
-npm run dev --workspace=client
-npm run build --workspace=client
-```
-
-## Docker
-
-Lancer server + client:
-
-```bash
-docker compose up --build
-```
-
-- API: `http://localhost:3001`
 - UI: `http://localhost:5173`
+- API: `http://localhost:3001`
 
-Note: la base Docker (`prod.db`) est vide au premier demarrage.
-Pour injecter les taches de demo:
+Optionnel (données de démo):
 
 ```bash
 docker-compose exec server npm run db:seed
 ```
 
-## Architecture rapide
+### Option 2: Local dev (recommandé pour coder)
 
-- `server/src/routes`: definition REST
-- `server/src/controllers`: couche HTTP
-- `server/src/services`: logique metier + Prisma
-- `server/src/middleware`: validation + gestion centralisee des erreurs
-- `client/src/api`: client HTTP
-- `client/src/hooks`: hooks React Query
-- `client/src/components`: UI
+```bash
+npm install
+npm run db:push
+npm run db:seed
+npm run dev
+```
 
-## Tests
+## API
 
-Tests backend disponibles:
-- health check
-- creation task
-- listing/filter/search
-- erreurs de validation
-- update/delete
+Base URL: `http://localhost:3001`
 
-Frontend: pas de test configure pour le moment (choix volontaire mini-projet).
+### Endpoints
 
-## Ameliorations possibles
+- `GET /api/health`
+- `GET /api/tasks`
+- `POST /api/tasks`
+- `GET /api/tasks/:id`
+- `PUT /api/tasks/:id`
+- `DELETE /api/tasks/:id`
 
-- Authentification (JWT / session)
-- Pagination cote backend + frontend
-- Roles et permissions
-- Soft delete et audit log
-- CI (lint/test/build) GitHub Actions
-- Partage d un package de types commun (`packages/shared`)
+### Query params de `GET /api/tasks`
+
+- `status`: `todo|doing|done`
+- `priority`: `low|medium|high`
+- `search`: texte libre
+- `sortBy`: `title|dueDate|createdAt|priority|status`
+- `sortOrder`: `asc|desc`
+- `page`: entier `>= 1` (défaut: `1`)
+- `limit`: entier `1..100` (défaut: `10`)
+
+Exemple:
+
+```bash
+curl "http://localhost:3001/api/tasks?page=2&limit=20&status=doing&sortBy=createdAt&sortOrder=desc"
+```
+
+## Commandes utiles
+
+```bash
+npm run lint
+npm run test
+npm run build
+npm run format
+```
+
+## CI
+
+Workflow: `.github/workflows/ci.yml`
+
+Déclenchement:
+- `push` sur `main`
+- `pull_request` vers `main`
+
+Étapes:
+1. `npm ci`
+2. `npm run lint`
+3. `npm run test`
+4. `npm run build`
+
+## Structure rapide
+
+```text
+client/
+  src/components/ui
+  src/features/tasks
+server/
+  src/routes
+  src/services
+  prisma/
+```
+
+## Améliorations possibles
+
+- Authentification (JWT/session)
+- Gestion des rôles
+- Optimistic updates côté frontend
+- Soft delete + audit trail

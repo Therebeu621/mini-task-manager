@@ -8,47 +8,63 @@ import type { CreateTaskInput, UpdateTaskInput, TaskQueryInput } from '../valida
 
 const prisma = new PrismaClient();
 
-/**
- * Priority ordering used for manual sorting when Prisma enum sort
- * doesn't map directly to a meaningful order (low < medium < high).
- */
-const PRIORITY_ORDER: Record<string, number> = { low: 1, medium: 2, high: 3 };
+function buildTaskWhere(query: TaskQueryInput): Prisma.TaskWhereInput {
+    const where: Prisma.TaskWhereInput = {};
+
+    if (query.status) {
+        where.status = query.status;
+    }
+    if (query.priority) {
+        where.priority = query.priority;
+    }
+    if (query.search) {
+        where.OR = [
+            { title: { contains: query.search } },
+            { description: { contains: query.search } },
+        ];
+    }
+
+    return where;
+}
 
 export const TasksService = {
     /**
      * Return all tasks, optionally filtered, searched, and sorted.
      */
     async list(query: TaskQueryInput) {
-        const where: Prisma.TaskWhereInput = {};
+        const where = buildTaskWhere(query);
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 10;
+        const skip = (page - 1) * limit;
+        const sortBy = query.sortBy ?? 'createdAt';
+        const sortOrder = query.sortOrder ?? 'desc';
 
-        if (query.status) {
-            where.status = query.status;
-        }
-        if (query.priority) {
-            where.priority = query.priority;
-        }
-        if (query.search) {
-            where.OR = [
-                { title: { contains: query.search } },
-                { description: { contains: query.search } },
-            ];
-        }
+        const orderBy: Prisma.TaskOrderByWithRelationInput[] =
+            sortBy === 'createdAt'
+                ? [{ createdAt: sortOrder }, { id: 'asc' }]
+                : [{ [sortBy]: sortOrder }, { createdAt: 'desc' }, { id: 'asc' }];
 
-        // Sorting — priority has custom ordering (low→medium→high), so sort in-memory
-        if (query.sortBy === 'priority') {
-            const tasks = await prisma.task.findMany({ where });
-            const dir = query.sortOrder === 'asc' ? 1 : -1;
-            return tasks.sort(
-                (a, b) =>
-                    ((PRIORITY_ORDER[a.priority] ?? 0) - (PRIORITY_ORDER[b.priority] ?? 0)) * dir,
-            );
-        }
+        const [data, total] = await Promise.all([
+            prisma.task.findMany({
+                where,
+                orderBy,
+                skip,
+                take: limit,
+            }),
+            prisma.task.count({ where }),
+        ]);
 
-        const orderBy: Prisma.TaskOrderByWithRelationInput = {
-            [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+        const totalPages = total === 0 ? 1 : Math.ceil(total / limit);
+
+        return {
+            data,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages,
+            },
         };
-
-        return prisma.task.findMany({ where, orderBy });
     },
 
     /**
