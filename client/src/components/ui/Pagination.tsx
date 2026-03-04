@@ -52,13 +52,24 @@ export function Pagination({
     const tokens = buildPageTokens(page, safeTotalPages);
 
     return (
-        <section className="mt-5 space-y-3 rounded-md border border-app-border bg-app-surface p-4" aria-label="Pagination">
+        <section
+            className="mt-6 space-y-3 rounded-lg border border-app-border bg-app-surface p-4 shadow-xs"
+            aria-label="Pagination"
+        >
             <div className="flex items-center gap-2 text-sm text-app-muted">
-                Showing {start}-{end} of {total}
-                {isFetching && <span className="font-semibold text-app-accent">Updating...</span>}
+                <span>
+                    Showing <strong className="font-semibold text-app-text">{start}&ndash;{end}</strong> of{' '}
+                    <strong className="font-semibold text-app-text">{total}</strong>
+                </span>
+                {isFetching && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-app-accent">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-accent" />
+                        Updating
+                    </span>
+                )}
             </div>
 
-            <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
                 <Select
                     aria-label="Page size"
                     label="Rows"
@@ -69,9 +80,10 @@ export function Pagination({
                         { value: '20', label: '20' },
                         { value: '50', label: '50' },
                     ]}
+                    className="!w-20"
                 />
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -100,12 +112,17 @@ export function Pagination({
                                 onClick={() => onPageChange(token)}
                                 aria-label={`Go to page ${token}`}
                                 aria-current={token === page ? 'page' : undefined}
+                                className={token === page ? 'pointer-events-none' : ''}
                             >
                                 {token}
                             </Button>
                         ) : (
-                            <span key={token} className="px-2 text-app-muted" aria-hidden="true">
-                                ...
+                            <span
+                                key={token}
+                                className="px-1 text-sm text-app-muted/60"
+                                aria-hidden="true"
+                            >
+                                &hellip;
                             </span>
                         ),
                     )}

@@ -30,24 +30,24 @@ export function Drawer({ open, title, onClose, children }: DrawerProps) {
 
     return (
         <div
-            className="fixed inset-0 z-40 flex justify-end bg-slate-950/50 backdrop-blur-sm"
+            className="fixed inset-0 z-40 flex justify-end bg-slate-950/40 backdrop-blur-[3px] animate-fade-in"
             role="presentation"
             onClick={onClose}
         >
             <aside
-                className="h-full w-full max-w-sm border-l border-app-border bg-app-surface shadow-md"
+                className="flex h-full w-full max-w-sm flex-col border-l border-app-border bg-app-surface shadow-xl animate-slide-in-right"
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}
                 onClick={(event) => event.stopPropagation()}
             >
                 <header className="flex items-center justify-between border-b border-app-border px-5 py-4">
-                    <h2 className="text-base font-semibold text-app-text">{title}</h2>
+                    <h2 className="text-base font-bold text-app-text">{title}</h2>
                     <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close filters">
                         Close
                     </Button>
                 </header>
-                <div className="h-[calc(100%-65px)] overflow-y-auto p-4">{children}</div>
+                <div className="flex-1 overflow-y-auto p-5">{children}</div>
             </aside>
         </div>
     );

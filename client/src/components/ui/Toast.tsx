@@ -12,33 +12,39 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
     }
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex max-w-sm flex-col gap-3" role="region" aria-label="Notifications">
+        <div
+            className="fixed bottom-6 right-6 z-50 flex max-w-sm flex-col gap-2"
+            role="region"
+            aria-label="Notifications"
+        >
             {toasts.map((toast) => (
                 <div
                     key={toast.id}
-                    className={`flex items-center gap-3 rounded-md border bg-white px-3 py-2 shadow-md ${
-                        toast.type === 'success' ? 'border-emerald-100' : 'border-rose-100'
+                    className={`toast-enter flex items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-lg ${
+                        toast.type === 'success'
+                            ? 'border-emerald-200/80'
+                            : 'border-rose-200/80'
                     }`}
                     role="alert"
                 >
                     <span
-                        className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold ${
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
                             toast.type === 'success'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-rose-100 text-rose-700'
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-rose-100 text-rose-600'
                         }`}
                     >
-                        {toast.type === 'success' ? 'OK' : '!'}
+                        {toast.type === 'success' ? '\u2713' : '!'}
                     </span>
-                    <span className="text-sm text-app-text">{toast.message}</span>
+                    <span className="flex-1 text-sm font-medium text-app-text">{toast.message}</span>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-auto"
+                        className="ml-1 shrink-0 border-0 text-app-muted/60 hover:text-app-text"
                         onClick={() => onDismiss(toast.id)}
                         aria-label="Dismiss notification"
                     >
-                        Close
+                        &times;
                     </Button>
                 </div>
             ))}

@@ -10,13 +10,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const BASE_CLASSES =
-    'inline-flex items-center justify-center rounded-sm border border-transparent font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+    'inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/30 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer select-none';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-    primary: 'bg-app-accent text-white shadow-sm hover:bg-app-accent-hover',
-    secondary: 'border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
-    ghost: 'border-app-border bg-transparent text-app-muted hover:bg-app-surface-muted hover:text-app-text',
-    danger: 'border-rose-100 bg-rose-50 text-rose-700 hover:bg-rose-100',
+    primary:
+        'bg-app-accent text-white shadow-sm hover:bg-app-accent-hover hover:shadow-md active:scale-[0.98]',
+    secondary:
+        'bg-app-accent-soft text-app-accent border-app-accent-soft hover:bg-emerald-100 active:scale-[0.98]',
+    ghost: 'border-app-border bg-transparent text-app-muted hover:bg-app-surface-hover hover:text-app-text hover:border-app-border-hover',
+    danger: 'bg-app-danger-soft text-app-danger border-transparent hover:bg-rose-100 active:scale-[0.98]',
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {

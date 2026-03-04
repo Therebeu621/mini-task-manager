@@ -1,7 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 
 const authSchema = z.object({
@@ -55,38 +54,55 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
 
     return (
         <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(15,122,108,0.2),transparent_38%)]" />
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-app-accent/[0.07] blur-3xl" />
+                <div className="absolute -bottom-24 -right-24 h-[400px] w-[400px] rounded-full bg-violet-500/[0.05] blur-3xl" />
+            </div>
 
-            <Card className="relative w-full max-w-md p-6 sm:p-8" aria-label="Authentification">
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-app-accent">
-                    Mini Task Manager
-                </p>
-                <h1 className="text-2xl font-bold tracking-tight text-app-text">{title}</h1>
-                <p className="mb-6 mt-2 text-sm text-app-muted">
-                    {mode === 'login'
-                        ? 'Connectez-vous pour acceder a vos taches.'
-                        : 'Inscrivez-vous pour commencer a organiser votre travail.'}
-                </p>
+            <div
+                className="relative w-full max-w-[440px] rounded-xl border border-app-border bg-white/80 p-8 shadow-xl backdrop-blur-xl sm:p-10"
+                aria-label="Authentification"
+            >
+                <div className="mb-8 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-app-accent shadow-md">
+                        <span className="text-lg font-black text-white">M</span>
+                    </div>
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-app-accent">
+                        Mini Task Manager
+                    </p>
+                    <h1 className="text-2xl font-bold tracking-tight text-app-text">{title}</h1>
+                    <p className="mt-1.5 text-sm text-app-muted">
+                        {mode === 'login'
+                            ? 'Connectez-vous pour acceder a vos taches.'
+                            : 'Inscrivez-vous pour commencer a organiser votre travail.'}
+                    </p>
+                </div>
 
-                <div className="mb-5 grid grid-cols-2 rounded-md border border-app-border bg-app-surface-muted p-1">
-                    <Button
-                        variant={mode === 'login' ? 'primary' : 'ghost'}
-                        size="sm"
+                <div className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-app-surface-muted p-1 ring-1 ring-app-border">
+                    <button
+                        type="button"
                         onClick={() => setMode('login')}
                         aria-pressed={mode === 'login'}
-                        className={mode === 'login' ? '' : 'border-transparent'}
+                        className={`rounded-md px-3 py-2 text-sm font-semibold transition-all ${
+                            mode === 'login'
+                                ? 'bg-white text-app-text shadow-sm'
+                                : 'text-app-muted hover:text-app-text'
+                        }`}
                     >
                         Login
-                    </Button>
-                    <Button
-                        variant={mode === 'register' ? 'primary' : 'ghost'}
-                        size="sm"
+                    </button>
+                    <button
+                        type="button"
                         onClick={() => setMode('register')}
                         aria-pressed={mode === 'register'}
-                        className={mode === 'register' ? '' : 'border-transparent'}
+                        className={`rounded-md px-3 py-2 text-sm font-semibold transition-all ${
+                            mode === 'register'
+                                ? 'bg-white text-app-text shadow-sm'
+                                : 'text-app-muted hover:text-app-text'
+                        }`}
                     >
                         Register
-                    </Button>
+                    </button>
                 </div>
 
                 <form className="space-y-4" onSubmit={handleSubmit} noValidate>
@@ -111,9 +127,13 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
                         error={fieldErrors.password}
                     />
 
-                    {errorMessage && <p className="text-sm font-medium text-rose-700">{errorMessage}</p>}
+                    {errorMessage && (
+                        <div className="rounded-md bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
+                            {errorMessage}
+                        </div>
+                    )}
 
-                    <Button type="submit" disabled={isSubmitting} fullWidth>
+                    <Button type="submit" disabled={isSubmitting} fullWidth className="mt-2 h-11">
                         {isSubmitting
                             ? 'Chargement...'
                             : mode === 'login'
@@ -121,7 +141,7 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
                               : 'Creer mon compte'}
                     </Button>
                 </form>
-            </Card>
+            </div>
         </main>
     );
 }
