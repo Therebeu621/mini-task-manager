@@ -13,7 +13,7 @@ V1.1 inclut une UI modernisée avec Tailwind CSS et composants réutilisables.
 
 ## Stack technique
 
-- Frontend: React + Vite + TypeScript + TanStack Query + Tailwind CSS
+- Frontend: React + Vite + TypeScript + TanStack Query + Tailwind CSS + shadcn/ui (primitives)
 - Backend: Node.js + Express + TypeScript + Prisma + SQLite
 - Qualité: ESLint + Prettier + Vitest + Supertest
 - DevOps: Docker + docker-compose + GitHub Actions (CI)
@@ -36,6 +36,7 @@ V1.1 inclut une UI modernisée avec Tailwind CSS et composants réutilisables.
   - mobile: drawer filtres
 - UI system:
   - composants maison stylés Tailwind (`Button`, `Input`, `Card`)
+  - primitives shadcn/ui intégrées (`button`, `input`, `dialog`) pour accélérer l'itération UI
   - design tokens centralisés dans `tailwind.config.js`
 
 ## Démo rapide

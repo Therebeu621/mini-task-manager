@@ -1,4 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
+import { Input as ShadInput } from '../shadcn/input';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -16,14 +18,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
                     {label}
                 </span>
             )}
-            <input
+            <ShadInput
                 ref={ref}
                 id={id}
-                className={`h-10 w-full rounded-md border px-3 text-sm text-app-text transition-all duration-150 placeholder:text-app-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/25 focus-visible:border-app-accent ${
+                className={cn(
                     error
-                        ? 'border-rose-300 bg-rose-50/40 focus-visible:ring-rose-200'
-                        : 'border-app-border bg-white hover:border-app-border-hover'
-                } ${className}`.trim()}
+                        ? 'border-rose-300 bg-rose-50/40 focus-visible:border-rose-400 focus-visible:ring-rose-200'
+                        : 'hover:border-app-border-hover',
+                    className,
+                )}
                 {...props}
             />
             {error && <span className="text-xs font-medium text-rose-600">{error}</span>}
