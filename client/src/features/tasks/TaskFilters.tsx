@@ -55,15 +55,15 @@ export function TaskFilters({
     onReset,
 }: TaskFiltersProps) {
     return (
-        <aside className="task-filters">
+        <aside className="space-y-5 rounded-lg border border-app-border bg-app-surface p-5 shadow-sm">
             <div>
-                <h2 className="task-filters__title">Filters</h2>
-                <p className="task-filters__subtitle">Narrow down the task list quickly.</p>
+                <h2 className="text-lg font-semibold text-app-text">Filters</h2>
+                <p className="mt-1 text-sm text-app-muted">Narrow down the task list quickly.</p>
             </div>
 
-            <section className="task-filters__group">
-                <h3>Status</h3>
-                <div className="task-filters__chips">
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-app-muted">Status</h3>
+                <div className="flex flex-wrap gap-2">
                     {STATUS_FILTERS.map((item) => (
                         <Button
                             key={item.label}
@@ -78,9 +78,9 @@ export function TaskFilters({
                 </div>
             </section>
 
-            <section className="task-filters__group">
-                <h3>Priority</h3>
-                <div className="task-filters__chips">
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-app-muted">Priority</h3>
+                <div className="flex flex-wrap gap-2">
                     {PRIORITY_FILTERS.map((item) => (
                         <Button
                             key={item.label}
@@ -110,14 +110,15 @@ export function TaskFilters({
             />
 
             {canManageDeleted && (
-                <label className="task-filters__toggle" htmlFor="include-deleted">
+                <label className="inline-flex items-center gap-2 text-sm text-app-muted" htmlFor="include-deleted">
                     <input
                         id="include-deleted"
                         type="checkbox"
                         checked={includeDeleted}
                         onChange={(event) => onIncludeDeletedChange(event.target.checked)}
+                        className="h-4 w-4 accent-[var(--accent)]"
                     />
-                    <span>Inclure les tâches supprimées</span>
+                    <span>Include soft-deleted tasks</span>
                 </label>
             )}
 

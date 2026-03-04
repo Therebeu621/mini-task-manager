@@ -17,7 +17,7 @@ export function TaskToolbar({
     onResetFilters,
 }: TaskToolbarProps) {
     return (
-        <section className="task-toolbar">
+        <section className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <Input
                 id="task-search"
                 label="Search"
@@ -25,10 +25,11 @@ export function TaskToolbar({
                 value={search}
                 onChange={(event) => onSearchChange(event.target.value)}
                 aria-label="Search tasks"
+                className="sm:min-w-[320px]"
             />
 
-            <div className="task-toolbar__actions">
-                <Button variant="secondary" onClick={onOpenFilters} className="task-toolbar__mobile-trigger">
+            <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={onOpenFilters} className="lg:hidden">
                     Filters
                 </Button>
                 {hasActiveFilters && (

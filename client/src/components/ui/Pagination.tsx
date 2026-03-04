@@ -52,13 +52,13 @@ export function Pagination({
     const tokens = buildPageTokens(page, safeTotalPages);
 
     return (
-        <section className="ui-pagination" aria-label="Pagination">
-            <div className="ui-pagination__summary">
+        <section className="mt-5 space-y-3 rounded-md border border-app-border bg-app-surface p-4" aria-label="Pagination">
+            <div className="flex items-center gap-2 text-sm text-app-muted">
                 Showing {start}-{end} of {total}
-                {isFetching && <span className="ui-pagination__loading">Updating...</span>}
+                {isFetching && <span className="font-semibold text-app-accent">Updating...</span>}
             </div>
 
-            <div className="ui-pagination__controls">
+            <div className="flex flex-wrap items-end justify-between gap-4">
                 <Select
                     aria-label="Page size"
                     label="Rows"
@@ -71,7 +71,7 @@ export function Pagination({
                     ]}
                 />
 
-                <div className="ui-pagination__buttons">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -104,7 +104,7 @@ export function Pagination({
                                 {token}
                             </Button>
                         ) : (
-                            <span key={token} className="ui-pagination__ellipsis" aria-hidden="true">
+                            <span key={token} className="px-2 text-app-muted" aria-hidden="true">
                                 ...
                             </span>
                         ),

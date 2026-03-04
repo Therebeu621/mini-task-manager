@@ -16,12 +16,22 @@ export function TaskCard({ task, canRestore, onEdit, onDelete, onRestore }: Task
     const isDeleted = Boolean(task.deletedAt);
 
     return (
-        <article className={`task-card-v2${isDeleted ? ' is-deleted' : ''}`}>
-            <header className="task-card-v2__header">
-                <h3 className={`task-card-v2__title${task.status === 'done' ? ' is-done' : ''}`}>
+        <article
+            className={`rounded-md border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                isDeleted
+                    ? 'border-dashed border-app-border bg-slate-50/60 opacity-90'
+                    : 'border-app-border bg-app-surface'
+            }`}
+        >
+            <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <h3
+                    className={`text-base font-semibold text-app-text ${
+                        task.status === 'done' ? 'text-app-muted line-through' : ''
+                    }`}
+                >
                     {task.title}
                 </h3>
-                <div className="task-card-v2__actions">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                     {isDeleted ? (
                         canRestore && (
                             <Button
@@ -56,18 +66,18 @@ export function TaskCard({ task, canRestore, onEdit, onDelete, onRestore }: Task
                 </div>
             </header>
 
-            {task.description && <p className="task-card-v2__description">{task.description}</p>}
+            {task.description && <p className="mt-3 text-sm text-app-muted">{task.description}</p>}
 
-            <footer className="task-card-v2__meta">
+            <footer className="mt-4 flex flex-wrap items-center gap-2">
                 <Badge tone={task.status}>{STATUS_LABELS[task.status]}</Badge>
                 <Badge tone={task.priority}>{PRIORITY_LABELS[task.priority]}</Badge>
                 {task.dueDate && (
-                    <span className={`task-card-v2__due${overdue ? ' is-overdue' : ''}`}>
+                    <span className={`text-xs ${overdue ? 'font-semibold text-rose-700' : 'text-app-muted'}`}>
                         Due {formatDate(task.dueDate)}
                     </span>
                 )}
                 {isDeleted && task.deletedAt && (
-                    <span className="task-card-v2__deleted-label">
+                    <span className="text-xs font-semibold text-rose-700">
                         Deleted on {formatDate(task.deletedAt)}
                     </span>
                 )}

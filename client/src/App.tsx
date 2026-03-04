@@ -263,7 +263,7 @@ export default function App() {
 
     if (isBootstrapping) {
         return (
-            <main className="auth-shell">
+            <main className="flex min-h-screen items-center justify-center px-4">
                 <Spinner label="Chargement de la session" />
             </main>
         );
@@ -285,20 +285,32 @@ export default function App() {
 
     return (
         <>
-            <header className="product-header">
-                <div className="product-header__content">
+            <header className="sticky top-0 z-20 border-b border-app-border bg-app-bg/85 backdrop-blur">
+                <div className="container flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <p className="product-header__eyebrow">Task Operations</p>
-                        <h1 className="product-header__title">Mini Task Manager</h1>
+                        <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-app-accent">
+                            Task Operations
+                        </p>
+                        <h1 className="text-2xl font-bold tracking-tight text-app-text sm:text-3xl">
+                            Mini Task Manager
+                        </h1>
                     </div>
 
-                    <div className="product-header__stats">
-                        <p className="product-header__count">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-sm text-app-muted">
                             Total tasks: <strong>{response.meta.total}</strong>
                         </p>
-                        <div className="product-header__user">
-                            <span className="product-header__email">{user.email}</span>
-                            <span className={`product-header__role product-header__role--${user.role}`}>
+                        <div className="flex items-center gap-2 rounded-full border border-app-border bg-app-surface px-3 py-1.5">
+                            <span className="max-w-[220px] truncate text-xs text-app-muted">
+                                {user.email}
+                            </span>
+                            <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                    user.role === 'admin'
+                                        ? 'bg-rose-100 text-rose-700'
+                                        : 'bg-emerald-100 text-emerald-700'
+                                }`}
+                            >
                                 {user.role}
                             </span>
                             <Button variant="ghost" size="sm" onClick={logout}>
@@ -312,9 +324,9 @@ export default function App() {
                 </div>
             </header>
 
-            <main className="product-main">
-                <div className="product-layout">
-                    <div className="product-layout__sidebar">
+            <main className="container py-8">
+                <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+                    <div className="hidden lg:block">
                         <TaskFilters
                             status={queryState.status ?? ''}
                             priority={queryState.priority ?? ''}
@@ -330,7 +342,7 @@ export default function App() {
                         />
                     </div>
 
-                    <section className="product-layout__content">
+                    <section>
                         <TaskToolbar
                             search={searchInput}
                             hasActiveFilters={hasActiveFilters}

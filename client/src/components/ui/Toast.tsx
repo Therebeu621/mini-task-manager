@@ -12,15 +12,29 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
     }
 
     return (
-        <div className="ui-toast-stack" role="region" aria-label="Notifications">
+        <div className="fixed bottom-6 right-6 z-50 flex max-w-sm flex-col gap-3" role="region" aria-label="Notifications">
             {toasts.map((toast) => (
-                <div key={toast.id} className={`ui-toast ui-toast--${toast.type}`} role="alert">
-                    <span className="ui-toast__icon">{toast.type === 'success' ? 'OK' : '!'}</span>
-                    <span>{toast.message}</span>
+                <div
+                    key={toast.id}
+                    className={`flex items-center gap-3 rounded-md border bg-white px-3 py-2 shadow-md ${
+                        toast.type === 'success' ? 'border-emerald-100' : 'border-rose-100'
+                    }`}
+                    role="alert"
+                >
+                    <span
+                        className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold ${
+                            toast.type === 'success'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-rose-100 text-rose-700'
+                        }`}
+                    >
+                        {toast.type === 'success' ? 'OK' : '!'}
+                    </span>
+                    <span className="text-sm text-app-text">{toast.message}</span>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="ui-toast__close"
+                        className="ml-auto"
                         onClick={() => onDismiss(toast.id)}
                         aria-label="Dismiss notification"
                     >
