@@ -212,7 +212,7 @@ Pipeline:
 
 ## Améliorations possibles
 
-- shadcn/ui complet (optionnel) en complément de la base UI maison actuelle
+- Étendre l'adoption de shadcn/ui (Sheet, Select, Toast, Dropdown, etc.) pour uniformiser toute l'UI
 - Refresh token + rotation
 - Pagination cursor-based
 - Audit trail enrichi (historique détaillé par champ)
