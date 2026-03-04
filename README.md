@@ -55,7 +55,7 @@ docker-compose up --build
 Seed de démo (optionnel):
 
 ```bash
-docker-compose exec server npm run db:seed
+docker-compose exec server npx -y tsx /app/prisma/seed.ts
 ```
 
 ## Démarrage local (développement)
