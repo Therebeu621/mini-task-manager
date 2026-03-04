@@ -93,22 +93,28 @@ export function TaskForm({ task, isPending, onCancel, onSubmit }: TaskFormProps)
     }
 
     return (
-        <div className="task-form-backdrop" role="presentation" onClick={onCancel}>
+        <div
+            className="fixed inset-0 z-40 grid place-items-center bg-slate-950/40 p-4 backdrop-blur-[3px] animate-fade-in"
+            role="presentation"
+            onClick={onCancel}
+        >
             <section
-                className="task-form-dialog"
+                className="w-full max-w-2xl rounded-xl border border-app-border bg-white shadow-xl animate-scale-in"
                 role="dialog"
                 aria-modal="true"
                 aria-label={isEditMode ? 'Edit task' : 'Create task'}
                 onClick={(event) => event.stopPropagation()}
             >
-                <header className="task-form-dialog__header">
-                    <h2>{isEditMode ? 'Edit task' : 'Create task'}</h2>
+                <header className="flex items-center justify-between border-b border-app-border px-6 py-4">
+                    <h2 className="text-lg font-bold text-app-text">
+                        {isEditMode ? 'Edit task' : 'Create task'}
+                    </h2>
                     <Button variant="ghost" size="sm" onClick={onCancel}>
                         Close
                     </Button>
                 </header>
 
-                <form className="task-form-dialog__form" onSubmit={handleSubmit} noValidate>
+                <form className="space-y-5 p-6" onSubmit={handleSubmit} noValidate>
                     <Input
                         id="task-title"
                         ref={titleRef}
@@ -119,21 +125,23 @@ export function TaskForm({ task, isPending, onCancel, onSubmit }: TaskFormProps)
                         error={errors.title}
                     />
 
-                    <label className="ui-field" htmlFor="task-description">
-                        <span className="ui-field__label">Description</span>
+                    <label className="flex flex-col gap-1.5" htmlFor="task-description">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                            Description
+                        </span>
                         <textarea
                             id="task-description"
-                            className="ui-textarea"
+                            className="min-h-24 w-full rounded-md border border-app-border bg-white px-3 py-2.5 text-sm text-app-text transition-all duration-150 placeholder:text-app-muted/50 hover:border-app-border-hover focus-visible:border-app-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/25"
                             value={values.description}
                             onChange={(event) => handleChange('description', event.target.value)}
                             rows={4}
                         />
                         {errors.description && (
-                            <span className="ui-field__error">{errors.description}</span>
+                            <span className="text-xs font-medium text-rose-600">{errors.description}</span>
                         )}
                     </label>
 
-                    <div className="task-form-dialog__grid">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <Select
                             id="task-status"
                             label="Status"
@@ -172,7 +180,7 @@ export function TaskForm({ task, isPending, onCancel, onSubmit }: TaskFormProps)
                         error={errors.dueDate}
                     />
 
-                    <footer className="task-form-dialog__footer">
+                    <footer className="flex justify-end gap-2 border-t border-app-border pt-5">
                         <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
                             Cancel
                         </Button>

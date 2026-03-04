@@ -263,7 +263,7 @@ export default function App() {
 
     if (isBootstrapping) {
         return (
-            <main className="auth-shell">
+            <main className="flex min-h-screen items-center justify-center px-4">
                 <Spinner label="Chargement de la session" />
             </main>
         );
@@ -285,36 +285,56 @@ export default function App() {
 
     return (
         <>
-            <header className="product-header">
-                <div className="product-header__content">
-                    <div>
-                        <p className="product-header__eyebrow">Task Operations</p>
-                        <h1 className="product-header__title">Mini Task Manager</h1>
+            <header className="sticky top-0 z-20 border-b border-app-border/80 bg-white/80 backdrop-blur-xl">
+                <div className="container flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-app-accent shadow-sm">
+                            <span className="text-sm font-black text-white">M</span>
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold tracking-tight text-app-text sm:text-xl">
+                                Mini Task Manager
+                            </h1>
+                            <p className="text-xs text-app-muted">
+                                {response.meta.total} task{response.meta.total !== 1 ? 's' : ''}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="product-header__stats">
-                        <p className="product-header__count">
-                            Total tasks: <strong>{response.meta.total}</strong>
-                        </p>
-                        <div className="product-header__user">
-                            <span className="product-header__email">{user.email}</span>
-                            <span className={`product-header__role product-header__role--${user.role}`}>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="flex items-center gap-2 rounded-full border border-app-border bg-app-surface-muted px-3 py-1.5">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-app-accent/10 text-[10px] font-bold text-app-accent">
+                                {user.email.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="max-w-[180px] truncate text-xs font-medium text-app-muted">
+                                {user.email}
+                            </span>
+                            <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                                    user.role === 'admin'
+                                        ? 'bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-200/60'
+                                        : 'bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200/60'
+                                }`}
+                            >
                                 {user.role}
                             </span>
-                            <Button variant="ghost" size="sm" onClick={logout}>
-                                Logout
-                            </Button>
                         </div>
-                        <Button onClick={openCreateForm} aria-label="Create task">
+                        <Button variant="ghost" size="sm" onClick={logout}>
+                            Logout
+                        </Button>
+                        <Button onClick={openCreateForm} aria-label="Create task" size="md">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
                             New task
                         </Button>
                     </div>
                 </div>
             </header>
 
-            <main className="product-main">
-                <div className="product-layout">
-                    <div className="product-layout__sidebar">
+            <main className="container py-8">
+                <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+                    <div className="hidden lg:block">
                         <TaskFilters
                             status={queryState.status ?? ''}
                             priority={queryState.priority ?? ''}
@@ -330,7 +350,7 @@ export default function App() {
                         />
                     </div>
 
-                    <section className="product-layout__content">
+                    <section>
                         <TaskToolbar
                             search={searchInput}
                             hasActiveFilters={hasActiveFilters}

@@ -1,4 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
+import { Button as ShadButton } from '../shadcn/button';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md';
@@ -9,6 +11,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     fullWidth?: boolean;
 }
 
+const VARIANT_MAP: Record<ButtonVariant, 'default' | 'secondary' | 'ghost' | 'destructive'> = {
+    primary: 'default',
+    secondary: 'secondary',
+    ghost: 'ghost',
+    danger: 'destructive',
+};
+
+const SIZE_MAP: Record<ButtonSize, 'sm' | 'default'> = {
+    sm: 'sm',
+    md: 'default',
+};
+
 export function Button({
     variant = 'primary',
     size = 'md',
@@ -17,10 +31,10 @@ export function Button({
     ...props
 }: ButtonProps) {
     return (
-        <button
-            className={`ui-button ui-button--${variant} ui-button--${size}${
-                fullWidth ? ' ui-button--full' : ''
-            } ${className}`.trim()}
+        <ShadButton
+            variant={VARIANT_MAP[variant]}
+            size={SIZE_MAP[size]}
+            className={cn(fullWidth && 'w-full', className)}
             {...props}
         />
     );

@@ -12,19 +12,39 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
     }
 
     return (
-        <div className="ui-toast-stack" role="region" aria-label="Notifications">
+        <div
+            className="fixed bottom-6 right-6 z-50 flex max-w-sm flex-col gap-2"
+            role="region"
+            aria-label="Notifications"
+        >
             {toasts.map((toast) => (
-                <div key={toast.id} className={`ui-toast ui-toast--${toast.type}`} role="alert">
-                    <span className="ui-toast__icon">{toast.type === 'success' ? 'OK' : '!'}</span>
-                    <span>{toast.message}</span>
+                <div
+                    key={toast.id}
+                    className={`toast-enter flex items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-lg ${
+                        toast.type === 'success'
+                            ? 'border-emerald-200/80'
+                            : 'border-rose-200/80'
+                    }`}
+                    role="alert"
+                >
+                    <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                            toast.type === 'success'
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-rose-100 text-rose-600'
+                        }`}
+                    >
+                        {toast.type === 'success' ? '\u2713' : '!'}
+                    </span>
+                    <span className="flex-1 text-sm font-medium text-app-text">{toast.message}</span>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="ui-toast__close"
+                        className="ml-1 shrink-0 border-0 text-app-muted/60 hover:text-app-text"
                         onClick={() => onDismiss(toast.id)}
                         aria-label="Dismiss notification"
                     >
-                        Close
+                        &times;
                     </Button>
                 </div>
             ))}
