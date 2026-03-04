@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 
-COPY tsconfig.json tsconfig.node.json vite.config.ts index.html ./
+COPY tsconfig.json tsconfig.node.json vite.config.ts index.html tailwind.config.js postcss.config.js ./
 COPY src ./src
 
 ARG VITE_API_URL=
