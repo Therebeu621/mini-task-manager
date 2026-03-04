@@ -4,6 +4,8 @@
 
 Application fullstack TypeScript (monorepo npm workspaces) pour gérer des tâches, avec authentification JWT, RBAC, soft delete/restauration, pagination et UI orientée produit.
 
+V1.1 inclut une UI modernisée avec Tailwind CSS et composants réutilisables.
+
 ## Aperçu interface
 
 ![Capture de l'interface Mini Task Manager](docs/demo.png)
@@ -11,7 +13,7 @@ Application fullstack TypeScript (monorepo npm workspaces) pour gérer des tâch
 
 ## Stack technique
 
-- Frontend: React + Vite + TypeScript + TanStack Query
+- Frontend: React + Vite + TypeScript + TanStack Query + Tailwind CSS
 - Backend: Node.js + Express + TypeScript + Prisma + SQLite
 - Qualité: ESLint + Prettier + Vitest + Supertest
 - DevOps: Docker + docker-compose + GitHub Actions (CI)
@@ -32,6 +34,14 @@ Application fullstack TypeScript (monorepo npm workspaces) pour gérer des tâch
 - UI responsive:
   - desktop: sidebar filtres + liste
   - mobile: drawer filtres
+- UI system:
+  - composants maison stylés Tailwind (`Button`, `Input`, `Card`)
+  - design tokens centralisés dans `tailwind.config.js`
+
+## Démo rapide
+
+- Capture principale: `docs/demo.png`
+- Option recommandée pour portfolio: ajouter un GIF court (20-40s) montrant login -> create task -> filter -> restore.
 
 ## Démarrage rapide (recommandé: Docker)
 
@@ -200,6 +210,7 @@ Pipeline:
 
 ## Améliorations possibles
 
+- shadcn/ui complet (optionnel) en complément de la base UI maison actuelle
 - Refresh token + rotation
 - Pagination cursor-based
 - Audit trail enrichi (historique détaillé par champ)
