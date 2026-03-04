@@ -8,7 +8,7 @@ V1.1 inclut une UI modernisée avec Tailwind CSS et composants réutilisables.
 
 ## Aperçu interface
 
-![Capture de l'interface Mini Task Manager](docs/demo.png)
+![Capture de l'interface Mini Task Manager (logged in)](docs/loggedin.png)
 
 
 ## Stack technique
@@ -40,7 +40,8 @@ V1.1 inclut une UI modernisée avec Tailwind CSS et composants réutilisables.
 
 ## Démo rapide
 
-- Capture principale: `docs/demo.png`
+- Capture principale: `docs/loggedin.png`
+- Capture login: `docs/loggedout.png`
 - Option recommandée pour portfolio: ajouter un GIF court (20-40s) montrant login -> create task -> filter -> restore.
 
 ## Démarrage rapide (recommandé: Docker)
