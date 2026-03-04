@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --bg: #f3f7fb;
   --bg-accent: #eaf7f5;
@@ -22,6 +26,28 @@
   --space-8: 32px;
   --shadow-sm: 0 6px 18px rgba(18, 32, 41, 0.06);
   --shadow-md: 0 14px 36px rgba(18, 32, 41, 0.12);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply min-h-full;
+  }
+
+  body {
+    @apply antialiased text-app-text;
+    background:
+      radial-gradient(circle at 0 0, var(--bg-accent), transparent 40%),
+      var(--bg);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 *,
