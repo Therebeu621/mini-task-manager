@@ -1,11 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 
 const authSchema = z.object({
     email: z.string().email('Email invalide').max(255).trim().toLowerCase(),
-    password: z.string().min(8, 'Mot de passe: 8 caractères minimum').max(128),
+    password: z.string().min(8, 'Mot de passe: 8 caracteres minimum').max(128),
 });
 
 type AuthMode = 'login' | 'register';
@@ -24,7 +25,7 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
     const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
     const title = useMemo(
-        () => (mode === 'login' ? 'Connexion à votre espace' : 'Créer un compte'),
+        () => (mode === 'login' ? 'Connexion a votre espace' : 'Creer un compte'),
         [mode],
     );
 
@@ -53,22 +54,27 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
     }
 
     return (
-        <main className="auth-shell">
-            <section className="auth-card" aria-label="Authentification">
-                <p className="auth-card__eyebrow">Mini Task Manager</p>
-                <h1>{title}</h1>
-                <p className="auth-card__subtitle">
+        <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(15,122,108,0.2),transparent_38%)]" />
+
+            <Card className="relative w-full max-w-md p-6 sm:p-8" aria-label="Authentification">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-app-accent">
+                    Mini Task Manager
+                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-app-text">{title}</h1>
+                <p className="mb-6 mt-2 text-sm text-app-muted">
                     {mode === 'login'
-                        ? 'Connectez-vous pour accéder à vos tâches.'
-                        : 'Inscrivez-vous pour commencer à organiser votre travail.'}
+                        ? 'Connectez-vous pour acceder a vos taches.'
+                        : 'Inscrivez-vous pour commencer a organiser votre travail.'}
                 </p>
 
-                <div className="auth-card__switch">
+                <div className="mb-5 grid grid-cols-2 rounded-md border border-app-border bg-app-surface-muted p-1">
                     <Button
                         variant={mode === 'login' ? 'primary' : 'ghost'}
                         size="sm"
                         onClick={() => setMode('login')}
                         aria-pressed={mode === 'login'}
+                        className={mode === 'login' ? '' : 'border-transparent'}
                     >
                         Login
                     </Button>
@@ -77,12 +83,13 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
                         size="sm"
                         onClick={() => setMode('register')}
                         aria-pressed={mode === 'register'}
+                        className={mode === 'register' ? '' : 'border-transparent'}
                     >
                         Register
                     </Button>
                 </div>
 
-                <form className="auth-card__form" onSubmit={handleSubmit} noValidate>
+                <form className="space-y-4" onSubmit={handleSubmit} noValidate>
                     <Input
                         id="auth-email"
                         label="Email"
@@ -98,23 +105,23 @@ export function AuthPage({ isSubmitting, errorMessage, onLogin, onRegister }: Au
                         label="Mot de passe"
                         type="password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                        placeholder="Minimum 8 caractères"
+                        placeholder="Minimum 8 caracteres"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         error={fieldErrors.password}
                     />
 
-                    {errorMessage && <p className="auth-card__error">{errorMessage}</p>}
+                    {errorMessage && <p className="text-sm font-medium text-rose-700">{errorMessage}</p>}
 
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting} fullWidth>
                         {isSubmitting
                             ? 'Chargement...'
                             : mode === 'login'
                               ? 'Se connecter'
-                              : 'Créer mon compte'}
+                              : 'Creer mon compte'}
                     </Button>
                 </form>
-            </section>
+            </Card>
         </main>
     );
 }
